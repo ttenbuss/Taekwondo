@@ -1,0 +1,664 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Taekwondo Prüfungstool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;800&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: eine schmale Prüfungsspalte (Hanji-Blatt), ein Fokus pro Bildschirm. Farben aus der Taegeuk-Flagge: Blau als Akzent, Rot nur für Fehler. */
+:root{
+  --bg:#eef1f7; --surface:#ffffff; --ink:#13203d; --muted:#586484; --line:#d6dcea;
+  --accent:#1b3f94; --accent-ink:#ffffff; --accent-bg:#e4eafa;
+  --good:#1c7a4b; --good-bg:#e1f3e9; --bad:#b3261e; --bad-bg:#fbe7e5; --warn:#8a5300; --warn-bg:#fdf0d8;
+  --font-display:'Noto Serif KR','Noto Serif','Georgia',serif;
+  --font-body:'Public Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1324; --surface:#151c33; --ink:#e7ebf7; --muted:#9ba6c6; --line:#2a3454;
+  --accent:#92b1ff; --accent-ink:#0d1324; --accent-bg:#1c2850;
+  --good:#63d393; --good-bg:#12301f; --bad:#ff8b82; --bad-bg:#3a1714; --warn:#f0b957; --warn-bg:#342610; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1324; --surface:#151c33; --ink:#e7ebf7; --muted:#9ba6c6; --line:#2a3454;
+  --accent:#92b1ff; --accent-ink:#0d1324; --accent-bg:#1c2850;
+  --good:#63d393; --good-bg:#12301f; --bad:#ff8b82; --bad-bg:#3a1714; --warn:#f0b957; --warn-bg:#342610; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.55 var(--font-body);padding-inline:16px;padding-block:20px 56px}
+.wrap{max-width:720px;margin-inline:auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--font-display);margin:0;line-height:1.25;text-wrap:balance}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top h1{font-size:1.5rem;font-weight:800}
+.top .kr{font-family:var(--font-display);font-weight:600;color:var(--muted);font-size:1rem;letter-spacing:.08em}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;min-width:0}
+.examiner{display:flex;flex-direction:column;gap:6px}
+.examiner .cmd{font-family:var(--font-display);font-weight:800;font-size:1.25rem;color:var(--accent)}
+.label{font-size:.75rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.sec{display:flex;flex-direction:column;gap:10px}
+.belts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.belt{display:flex;align-items:center;gap:10px;text-align:left;padding:9px 10px;background:var(--surface);border:1px solid var(--line);border-radius:8px;min-width:0}
+.belt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-bg);box-shadow:inset 0 0 0 1px var(--accent)}
+.sw{flex:none;width:30px;height:12px;border-radius:2px;border:1px solid rgba(0,0,0,.35);position:relative;overflow:hidden}
+.sw i{position:absolute;inset:0 auto 0 50%;width:7px;margin-left:-3.5px}
+.belt b{font-weight:600;font-size:.92rem}
+.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.seg button{padding:10px 12px;border:1px solid var(--line);background:var(--surface);border-radius:8px;text-align:left;display:flex;flex-direction:column;gap:2px}
+.seg button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-bg);box-shadow:inset 0 0 0 1px var(--accent)}
+.seg small{color:var(--muted);font-size:.8rem;line-height:1.35}
+.seg b{font-weight:600}
+.btn{border:0;background:var(--accent);color:var(--accent-ink);padding:12px 22px;border-radius:8px;font-weight:600}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row.sp{justify-content:space-between}
+details{border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:var(--surface)}
+summary{cursor:pointer;font-weight:600}
+dl.prog{margin:12px 0 0;display:grid;grid-template-columns:minmax(0,9rem) minmax(0,1fr);gap:8px 14px;font-size:.92rem}
+dl.prog dt{color:var(--muted);font-weight:600}
+dl.prog dd{margin:0}
+@media (max-width:520px){dl.prog{grid-template-columns:1fr;gap:2px}dl.prog dd{margin-bottom:8px}}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar>div{height:100%;background:var(--accent);transition:width .25s}
+.qhead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.q{font-family:var(--font-display);font-size:1.3rem;font-weight:600;line-height:1.4;margin:6px 0 4px;text-wrap:pretty}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;text-align:left;padding:12px 14px;border:1px solid var(--line);background:var(--surface);border-radius:8px;min-width:0}
+.opt .k{flex:none;width:24px;height:24px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:.78rem;font-weight:700;color:var(--muted)}
+.opt[aria-checked="true"]{border-color:var(--accent);background:var(--accent-bg)}
+.opt[aria-checked="true"] .k{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.opt.ok{border-color:var(--good);background:var(--good-bg)}
+.opt.no{border-color:var(--bad);background:var(--bad-bg)}
+.opt[disabled]{cursor:default}
+textarea{width:100%;min-height:92px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);resize:vertical}
+.fb{border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;border:1px solid}
+.fb.good{background:var(--good-bg);border-color:var(--good)}
+.fb.mid{background:var(--warn-bg);border-color:var(--warn)}
+.fb.bad{background:var(--bad-bg);border-color:var(--bad)}
+.chip{display:inline-block;font-weight:700;font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;padding:2px 9px;border-radius:99px;border:1px solid currentColor}
+.fb.good .chip{color:var(--good)}.fb.mid .chip{color:var(--warn)}.fb.bad .chip{color:var(--bad)}
+.fb p{margin:0}
+.ans{font-weight:600}
+.big{font-family:var(--font-display);font-size:2.4rem;font-weight:800;line-height:1.1}
+.res-top{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.verdict{font-weight:700;font-size:1.05rem}
+.verdict.good{color:var(--good)}.verdict.bad{color:var(--bad)}
+.cats{display:flex;flex-direction:column;gap:10px}
+.cat{display:grid;grid-template-columns:minmax(0,10rem) 1fr 3.2rem;gap:10px;align-items:center;font-size:.9rem}
+.cat .bar{height:8px}
+.cat span:last-child{text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:480px){.cat{grid-template-columns:minmax(0,7rem) 1fr 3rem}}
+.rev{display:flex;flex-direction:column;gap:12px}
+.rev article{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:4px;font-size:.93rem}
+.rev .mine{color:var(--bad)}
+.hist{font-size:.85rem;color:var(--muted)}
+.theme{background:none;border:1px solid var(--line);border-radius:99px;padding:3px 12px;font-size:.8rem;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div><h1>Taekwondo Prüfungstool</h1></div>
+    <div class="row"><span class="kr" lang="ko">승급 · 승단 심사</span><button class="theme" id="themeBtn" type="button">Hell/Dunkel</button></div>
+  </header>
+  <main id="app"></main>
+  <p class="hist" style="margin:0">Grundlage: DTU-Prüfungsordnung PO 2024 (Stand 01.01.2024). Koreanische Fachbegriffe und Formendetails folgen dem Kukkiwon-Standard und stehen nicht alle in der PO; prüfe sie bei Bedarf im Poomsae-Lehrbuch deines Verbands. Übungstool, ersetzt keine Prüfung.</p>
+</div>
+
+<script>
+/* ===================== DATEN ===================== */
+const GR=[
+ {n:'9. Kup',belt:'Weißer Gürtel mit gelbem Streifen',c:['#f3f3ee','#e6b800'],prep:'mind. 2 Monate seit erstmaliger Trainingsaufnahme',tech:'Grundschule (Basis-Einzeltechniken)',zk:'Step-Sparring + Pratzensparring',bruch:'–',theo:'Koreanische und deutsche Bezeichnungen der bisherigen Techniken, Fußstellungen und Kommandos',wahl:'– (Programm ist verpflichtend vorgegeben)'},
+ {n:'8. Kup',belt:'Gelber Gürtel',c:['#e6b800'],prep:'mind. 2 Monate seit letzter Graduierung',vor:'Stichprobe aus bisherigen Pflichtprogrammen',tech:'Grundschule (Basis-Einzel- und Mehrfachtechniken)',zk:'Step-Sparring + Pratzensparring (Angriff – Konter)',bruch:'–',theo:'Bezeichnungen der Techniken, Fußstellungen, Kommandos + Wettkampfregeln nach WOZ oder WOP',wahl:'1 aus 5: 1-Schritt-Kampf · Kreuzformen · Situationssparring · Freies Sparring (1 Runde) · SV: Fallschule + Ausweichen + Lösen einfacher Handangriffe'},
+ {n:'7. Kup',belt:'Gelber Gürtel mit grünem Streifen',c:['#e6b800','#2e8b57'],prep:'mind. 2 Monate seit letzter Graduierung',vor:'Stichprobe aus bisherigen Pflichtprogrammen',tech:'1. Form',zk:'Step-Sparring + Pratzensparring (Angriff – Konter)',bruch:'–',theo:'Bisherige Themen + Erklärung der Techniken, Fußstellungen und Übungen aus dem bisherigen Programm',wahl:'1 aus 5: Grundschule · 1-Schritt-Kampf · Situations-Sparring · Freies Sparring · SV: Fallschule + Ausweichen + Lösen einfacher Handangriffe'},
+ {n:'6. Kup',belt:'Grüner Gürtel',c:['#2e8b57'],prep:'mind. 2 Monate seit letzter Graduierung',vor:'Stichprobe aus bisherigen Pflichtprogrammen',tech:'2. Form',zk:'Step-Sparring + Pratzensparring (Angriff – Konter)',bruch:'–',theo:'Bisherige Themen + Notwehrrecht sinngemäß',wahl:'1 aus 5: Grundschule · 1-Schritt-Kampf · Situations-Sparring · Freies Sparring · SV: Verteidigung gegen Angriffe aus der Nahdistanz'},
+ {n:'5. Kup',belt:'Grüner Gürtel mit blauem Streifen',c:['#2e8b57','#1f4fb0'],prep:'mind. 2 Monate seit letzter Graduierung',vor:'Stichprobe aus bisherigen Pflichtprogrammen',tech:'3. Form',zk:'Step-Sparring + Pratzensparring (Angriff – Konter)',bruch:'–',theo:'Bisherige Themen + Geistige Hintergründe des TKD',wahl:'1 aus 5: Grundschule · 1-Schritt-Kampf · Situations-Sparring · Freies Sparring · SV: Verteidigung gegen kombinierte Angriffe aus der Nah- und mittleren Distanz'},
+ {n:'4. Kup',belt:'Blauer Gürtel',c:['#1f4fb0'],prep:'mind. 4 Monate seit letzter Graduierung',tech:'Grundschule + 4. Form',zk:'Pratzensparring + Situations-Sparring (Angriff – Konter)',bruch:'1 Technik nach eigener Wahl',theo:'Bisherige Themen + Kenntnis der vitalen Körperpunkte',wahl:'1 aus 9: 1-/2-/3-Schritt-Kampf · Poomsae Applikation · 2 zusätzliche Formen · 1-Schritt-Kampf (Zweikampf) · Sparring mit einfacher Aufgabenstellung · Freies Sparring · SV: Freie Abwehr aus langer, mittlerer und Nahdistanz + „Raumnot“'},
+ {n:'3. Kup',belt:'Blauer Gürtel mit rotem Streifen',c:['#1f4fb0','#c4302b'],prep:'mind. 4 Monate seit letzter Graduierung',tech:'Grundschule + 5. Form',zk:'Pratzensparring + Situations-Sparring (Angriff – Konter)',bruch:'2 verschiedene Einzeltechniken nach eigener Wahl',theo:'Bisherige Themen + Beschreibung und Erklärung der Trainingsinhalte',wahl:'1 aus 9 (wie 4. Kup); SV: Freie Abwehr aus allen Distanzen + Bodenlage + abgesprochene Stockangriffe'},
+ {n:'2. Kup',belt:'Roter oder brauner Gürtel',c:['#c4302b'],prep:'mind. 6 Monate seit letzter Graduierung',tech:'Grundschule + 6. Form',zk:'Pratzensparring + Situations-Sparring (Angriff – Konter)',bruch:'2 verschiedene Einzeltechniken nach eigener Wahl',theo:'Bisherige Themen + Technikprinzipien',wahl:'1 aus 9 (wie 4. Kup); SV: Abwehr gegen freie unbewaffnete Angriffe und freie Stockangriffe + abgesprochene Messerangriffe'},
+ {n:'1. Kup',belt:'Roter oder brauner Gürtel mit schwarzem Streifen',c:['#c4302b','#111'],prep:'mind. 6 Monate seit letzter Graduierung',tech:'Grundschule + 7. Form',zk:'Pratzensparring + Situations-Sparring (Angriff – Konter)',bruch:'2 verschiedene Einzeltechniken nach eigener Wahl',theo:'Bisherige Themen + Organisation/Aufbau der DTU und des zuständigen LV + Grundkenntnisse zur Trainingslehre',wahl:'1 aus 9 (wie 4. Kup); SV: Abwehr gegen freie unbewaffnete und bewaffnete Angriffe'},
+ {n:'1. Poom/Dan',belt:'Rot-schwarzer (Poom) bzw. schwarzer Gürtel (Dan)',c:['#111','#c4302b'],prep:'mind. 1 Jahr seit letzter Graduierung',tech:'1 Form aus dem Vorprogramm nach Losvorgabe + Taegeuk Pal Jang',zk:'Freies Sparring (1 Runde) + Sparring mit einfacher technischer/taktischer Aufgabenstellung (1 Runde)',bruch:'3 verschiedene Techniken, darunter eine 2er-Kombination',theo:'entfällt (bei Poom/Dan keine Theorieprüfung)',wahl:'2 aus 9, ggf. mit bis zu 3 eigenen Partnern; Schritt-Kämpfe mind. 8 versch. Übungen'},
+ {n:'2. Poom/Dan',belt:'Rot-schwarzer (Poom) bzw. schwarzer Gürtel (Dan)',c:['#111','#c4302b'],prep:'mind. 1 Jahr seit letzter Graduierung',tech:'1 Form aus dem Vorprogramm nach Losvorgabe + Poomsae Koryeo',zk:'Freies Sparring (1 Runde) + Sparring mit technischer/taktischer Aufgabenstellung (1 Runde)',bruch:'4 verschiedene Techniken; 2er-Kombination und eine Sprungtechnik',theo:'entfällt',wahl:'2 aus 9; SV zusätzlich Abwehr von Einzelangriffen mehrerer Angreifer aus der Reihe in schneller Folge'},
+ {n:'3. Poom/Dan',belt:'Rot-schwarzer (Poom) bzw. schwarzer Gürtel (Dan)',c:['#111','#c4302b'],prep:'mind. 2 Jahre seit letzter Graduierung',tech:'1 Form aus dem Vorprogramm nach Losvorgabe + Poomsae Keumgang',zk:'Freies Sparring (1 Runde) + Sparring mit technischer/taktischer Aufgabenstellung (1 Runde)',bruch:'5 verschiedene Techniken; 3er-Kombination und 2 verschiedene Sprungtechniken',theo:'entfällt',wahl:'2 aus 9; SV: Abwehr gegen mehrere Angreifer aus verschiedenen Richtungen'},
+ {n:'4. Dan',belt:'Schwarzer Gürtel (Lehrergrad)',c:['#111'],prep:'mind. 3 Jahre seit letzter Graduierung',tech:'1 Form aus dem Vorprogramm nach eigener Wahl + Poomsae Taebaek und Pyeongwon',zk:'Freies Sparring mit eigenem Partner (1 Runde)',bruch:'Technik(en) mit erhöhtem Schwierigkeitsgrad nach eigener Wahl',theo:'entfällt',wahl:'2 aus 9; SV: eigenes Programm (max. 3:00 Min.)'},
+ {n:'5. Dan',belt:'Schwarzer Gürtel (Lehrergrad)',c:['#111'],prep:'mind. 4 Jahre seit letzter Graduierung',tech:'1 Form aus dem Vorprogramm nach eigener Wahl + Poomsae Pyeongwon und Sipjin',zk:'Freies Sparring mit eigenem Partner (1 Runde)',bruch:'Technik(en) mit erhöhtem Schwierigkeitsgrad nach eigener Wahl',theo:'entfällt',wahl:'2 aus 9; SV: eigenes Programm (max. 3:00 Min.)'},
+ {n:'6. Dan',belt:'Schwarzer Gürtel (Lehrergrad)',c:['#111'],prep:'mind. 5 Jahre seit letzter Graduierung',zul:'Gültige DOSB-Trainer-Lizenz C „Taekwondo“',tech:'Poomsae Sipjin und Poomsae Jitae',zk:'Wahlbereich (Sparring-Optionen)',bruch:'Wahloption 10: Technik(en) mit erhöhtem Schwierigkeitsgrad',theo:'entfällt',wahl:'3 aus 10'},
+ {n:'7. Dan',belt:'Schwarzer Gürtel (Lehrergrad)',c:['#111'],prep:'mind. 6 Jahre seit letzter Graduierung',zul:'Gültige DOSB-Trainer-Lizenz C „Taekwondo“',tech:'Poomsae Jitae und Poomsae Cheonkwon',zk:'Wahlbereich (Sparring-Optionen)',bruch:'Wahloption 10',theo:'entfällt',wahl:'3 aus 10'},
+ {n:'8. Dan',belt:'Schwarzer Gürtel (Lehrergrad)',c:['#111'],prep:'mind. 7 Jahre seit letzter Graduierung',zul:'Gültige DOSB-Trainer-Lizenz B „Taekwondo“ oder Bundes-Kampfrichter-Lizenz',tech:'Poomsae Cheonkwon und Poomsae Hansu',zk:'Wahlbereich (Sparring-Optionen)',bruch:'Wahloption 10',theo:'entfällt',wahl:'3 aus 10'},
+ {n:'9. Dan',belt:'Schwarzer Gürtel (Lehrergrad)',c:['#111'],prep:'mind. 8 Jahre seit letzter Graduierung',zul:'Gültige DOSB-Trainer-Lizenz B „Taekwondo“ oder Bundes-Kampfrichter-Lizenz',tech:'Poomsae Hansu und Poomsae Ilyeo',zk:'Wahlbereich (Sparring-Optionen)',bruch:'Wahloption 10',theo:'entfällt',wahl:'3 aus 10'},
+];
+const GROUPS=[['Kup-Grade (Schülergrade)',0,8],['Poom / Dan (Leistungsgrade)',9,11],['Lehrergrade (4.–9. Dan)',12,17]];
+
+const TAE=[
+ {k:'Taegeuk Il Jang',n:'1',tri:'Geon',de:'Himmel',mv:18},{k:'Taegeuk I Jang',n:'2',tri:'Tae',de:'See (Freude)',mv:18},
+ {k:'Taegeuk Sam Jang',n:'3',tri:'Ri',de:'Feuer (Sonne)',mv:20},{k:'Taegeuk Sa Jang',n:'4',tri:'Jin',de:'Donner',mv:20},
+ {k:'Taegeuk O Jang',n:'5',tri:'Seon',de:'Wind',mv:20},{k:'Taegeuk Yuk Jang',n:'6',tri:'Gam',de:'Wasser',mv:19},
+ {k:'Taegeuk Chil Jang',n:'7',tri:'Gan',de:'Berg',mv:25},{k:'Taegeuk Pal Jang',n:'8',tri:'Gon',de:'Erde',mv:27}];
+const POO=[
+ {k:'Koryeo',alt:['Koryo','Goryeo'],dan:'2. Dan',mv:30,de:'Goryeo-Dynastie (Geist des Volkes, Gelehrsamkeit)',re:/goryeo|dynastie|korea|volk|gelehrt|kory/},
+ {k:'Keumgang',alt:['Kumgang','Geumgang'],dan:'3. Dan',mv:27,de:'Diamant (Härte, Unzerbrechlichkeit; auch ein heiliger Berg)',re:/diamant|hart|berg|keum|unzerbrech/},
+ {k:'Taebaek',alt:['Taebeak','Taebaeg'],dan:'4. Dan',mv:26,de:'Berg Taebaek (Ort der Gründungslegende Koreas, „Helligkeit“)',re:/berg|taebaek|gruend|grund|licht|hell/},
+ {k:'Pyeongwon',alt:['Pyongwon','Pyeong won'],dan:'4. und 5. Dan',mv:25,de:'Weite Ebene (Lebensgrundlage, Weite)',re:/ebene|weit|flach/},
+ {k:'Sipjin',alt:['Shipjin'],dan:'5. und 6. Dan',mv:29,de:'Zehn Symbole der Langlebigkeit / Dezimalsystem (Wachstum, Beständigkeit)',re:/zehn|dezimal|langleb|wachstum|10/},
+ {k:'Jitae',alt:['Ji tae','Jitae'],dan:'6. und 7. Dan',mv:28,de:'Erde (Ursprung des Lebens)',re:/erde/},
+ {k:'Cheonkwon',alt:['Chonkwon','Cheon kwon'],dan:'7. und 8. Dan',mv:29,de:'Himmel',re:/himmel/},
+ {k:'Hansu',alt:['Hanshu'],dan:'8. und 9. Dan',mv:27,de:'Wasser',re:/wasser/},
+ {k:'Ilyeo',alt:['Ilyo','Il yeo'],dan:'9. Dan',mv:25,de:'Einheit (Eins sein von Körper und Geist; buddhistische Idee)',re:/einheit|eins|geist|koerper|buddh|vereinig/},
+];
+
+/* Vokabeln: k=Koreanisch, a=Schreibvarianten, de=deutsche Entsprechung, d=Regex für Antworten (sprachlich normalisiert, ohne Umlaute), c=Rubrik, g=ab Grad */
+const V=[];
+const v=(c,g,k,a,de,d,o)=>V.push(Object.assign({c,g,k,a,de,d:new RegExp(d)},o||{}));
+const S='Stellungen (Seogi)',T='Tritte (Chagi)',B='Abwehr (Makgi)',TE='Handtechniken',K='Körperteile (Waffen)',R='Richtungen & Zonen',KD='Kommandos & Dojang',D='Disziplinen',NN='Zahlen (rein koreanisch)',NS='Zahlen (sino-koreanisch)';
+v(S,0,'Charyeot Seogi',['Charyot Seogi','Charyeot Soki'],'Aufmerksamkeitsstellung (Hab-Acht)','aufmerk|hab.?acht|still|achtung|attention');
+v(S,0,'Naranhi Seogi',['Naranhi Junbi Seogi','Narani Seogi','Narani Junbi Seogi'],'Parallelstellung (Bereitschaftsstellung)','parallel|bereit');
+v(S,0,'Moa Seogi',['Moa Soki'],'Geschlossene Stellung (Füße zusammen)','geschlossen|zusammen');
+v(S,0,'Ap Seogi',['Ap Soki'],'Gehstellung (kurze Vorwärtsstellung)','geh|kurz|walking');
+v(S,0,'Ap Kubi',['Ap Gubi','Ap Kkubi','Ap Gobi'],'Große Vorwärtsbeugestellung','vorw.*beug|gro.*vorw|front stance|beuge');
+v(S,1,'Juchum Seogi',['Juchum Soki','Juchoom Seogi'],'Reiterstellung','reiter|horse');
+v(S,2,'Dwit Kubi',['Dwit Gubi','Dwi Kubi','Dwi Gubi'],'Rückwärtsbeugestellung','ruck.*beug|ruckw|back stance');
+v(S,5,'Beom Seogi',['Bom Seogi','Beom Soki'],'Tigerstellung (Katzenstellung)','tiger|katze|cat');
+v(S,6,'Kkoa Seogi',['Koa Seogi','Kkoa Soki','Goa Seogi'],'Kreuzstellung','kreuz|cross');
+v(S,9,'Hakdari Seogi',['Hakdari Soki'],'Kranichstellung (Einbeinstand)','kranich|einbein|crane');
+v(T,0,'Ap Chagi',['Ap Tchagi','Ap Chaki'],'Frontkick (Vorwärtstritt)','front|vorw|vorne|gerade');
+v(T,1,'Dollyeo Chagi',['Dolryo Chagi','Dollyo Chagi','Dollyeo Chaki','Doll yeo Chagi'],'Halbkreistritt (Roundhouse-Kick)','halbkreis|round|kreis|bogen');
+v(T,2,'Yeop Chagi',['Yop Chagi','Yeob Chagi'],'Seitwärtstritt (Seitkick)','seit|side');
+v(T,3,'Dwit Chagi',['Dwi Chagi','Dwit Chaki'],'Rückwärtstritt','ruck|hinten|back');
+v(T,3,'Mireo Chagi',['Miro Chagi','Mireo Chaki'],'Schiebetritt','schieb|push|stoss');
+v(T,5,'Naeryeo Chagi',['Naeryo Chagi','Nerryeo Chagi'],'Abwärtstritt (Axtkick)','abwart|axt|ax|hammer|nach unten');
+v(T,6,'Twio Chagi',['Twieo Chagi','Tuio Chagi','Tui-o Chagi','Twyo Chagi'],'Sprungtritt','sprung|flying|spring');
+v(T,9,'Dwi Huryeo Chagi',['Dwit Huryeo Chagi','Dwi Hooryo Chagi','Dwi Huryo Chagi'],'Hakentritt (rückwärts drehend)','haken|hook');
+v(B,0,'Arae Makgi',['Arae Maki','Are Makgi'],'Abwehr tief (untere Abwehr)','tief|unten|low');
+v(B,0,'Momtong Makgi',['Momtong Maki'],'Abwehr Körpermitte (Rumpfabwehr)','mitte|rumpf|body|middle|koerper');
+v(B,1,'Eolgul Makgi',['Olgul Makgi','Eolgul Maki'],'Abwehr hoch (Gesichtsabwehr)','hoch|gesicht|kopf|high|face');
+v(B,3,'Sonnal Makgi',['Sonnal Maki'],'Handkantenabwehr','handkante|messerhand|knife');
+v(TE,0,'Jirugi',['Chirugi','Jiruki'],'Stoß (Fauststoß)','sto|punch|faust');
+v(TE,0,'Momtong Jirugi',['Momtong Chirugi'],'Fauststoß zur Körpermitte','mitte|rumpf|body|middle|koerper');
+v(TE,1,'Eolgul Jirugi',['Olgul Jirugi'],'Fauststoß zum Gesicht (Kopf)','gesicht|kopf|face|high');
+v(TE,3,'Chigi',['Tchigi','Jigi'],'Schlag','schlag|strike');
+v(TE,6,'Palkup Chigi',['Palkub Chigi','Palkup Tchigi'],'Ellbogenschlag','ellb|elbow');
+v(K,0,'Joomeok',['Jumeok','Jumok','Joomok','Joomeock'],'Faust','faust|fist');
+v(K,1,'Apchuk',['Ap Chuk','Apchook','Ap Chook'],'Fußballen','ballen|ball');
+v(K,3,'Sonnal',['Sonal'],'Handkante (Messerhand)','handkante|messerhand|knife');
+v(K,3,'Dwichuk',['Dwi Chuk','Dwit Chuk','Dwichook'],'Ferse','ferse|heel');
+v(K,3,'Baldeung',['Baldung','Bal Deung'],'Fußrücken','rucken|instep');
+v(K,5,'Balnal',['Bal Nal'],'Fußkante (Fußaußenkante)','kante|aussen|edge|blade');
+v(K,5,'Balbadak',['Bal Badak','Balpadak'],'Fußsohle','sohle|sole');
+v(K,5,'Mureup',['Mu Reup','Murup'],'Knie','knie|knee');
+v(K,6,'Palkup',['Palkub'],'Ellbogen','ellb|elbow');
+v(R,0,'Momtong',['Momtong'],'Körpermitte (Rumpf)','mitte|rumpf|body|middle|koerper');
+v(R,0,'Eolgul',['Olgul'],'Gesicht (Kopfbereich)','gesicht|kopf|face');
+v(R,0,'Arae',['Are','Ara'],'unten (tiefe Zone)','unten|tief|low');
+v(R,0,'Ap',['Ab'],'vorne (vorwärts)','vorn|vorw|front');
+v(R,1,'Dwi',['Dwit','Twi'],'hinten (rückwärts)','hinten|ruck|back');
+v(R,1,'Yeop',['Yop','Yeob'],'Seite (seitlich)','seit|side');
+v(R,3,'An',['Ahn'],'innen','innen|inner|inside');
+v(R,3,'Bakkat',['Bakat','Pakkat'],'außen','aussen|aussere|outer|outside');
+v(R,2,'Dollyeo',['Dolryo','Dollyo'],'kreisend (drehend)','kreis|dreh|round|rotat|bogen');
+v(R,5,'Twio',['Twieo','Tuio'],'springend (Sprung)','spring|sprung|jump|fly');
+v(KD,0,'Charyeot',['Charyot','Charyeot'],'Achtung! (Aufmerksamkeit)','achtung|aufmerk|still|attention');
+v(KD,0,'Kyeongnye',['Kyungnye','Gyeongnye','Kyoungrye','Kyungrye','Kyeongrye','Gyeongrye'],'Verbeugung (Gruß)','verbeug|gru|bow|salut');
+v(KD,0,'Junbi',['Joonbi','Jun bi','Joonbi'],'Bereit (Bereitschaft)','bereit|ready');
+v(KD,0,'Sijak',['Shijak','Siyak','Shi jak'],'Beginnen (Start)','beginn|start|anfang|los');
+v(KD,0,'Geuman',['Kuman','Gooman','Keuman'],'Aufhören (Stopp, Ende)','aufh|stopp|stop|ende|halt');
+v(KD,0,'Baro',['Barro','Paro'],'Zurück (in die Ausgangsstellung)','zuruck|ausgang|return|grund');
+v(KD,0,'Swieo',['Shiyo','Swio','Shio','Swieo'],'Entspannen (Pause)','entspann|pause|ruhe|rest');
+v(KD,1,'Dwiro Dora',['Dwiro-Dora','Dwiro Tora','Twiro Dora'],'Kehrt! (Umdrehen)','kehrt|umdreh|dreh|wend|about');
+v(KD,0,'Dojang',['Dojan','Dojang'],'Trainingshalle (Übungsraum)','training|halle|raum|ubungs|gym|schule');
+v(KD,0,'Dobok',['Dobak','Dobog'],'Trainingsanzug','anzug|uniform|kleidung|training');
+v(KD,0,'Ti',['Tti','Dti'],'Gürtel','gurtel|belt');
+v(KD,0,'Sabeomnim',['Sabumnim','Sabom Nim','Sabeom Nim','Sabumnim'],'Meister (Lehrer)','meister|lehrer|master|instruktor|trainer');
+v(KD,0,'Kihap',['Gihap','Kiyap'],'Kampfschrei','kampfschrei|schrei|kiai');
+v(KD,0,'Gamsahamnida',['Kamsahamnida','Kamsahabnida','Gamsahabnida'],'Danke (vielen Dank)','dank|thanks');
+v(D,0,'Gyeorugi',['Kyorugi','Kyeorugi','Gyeoru gi'],'Zweikampf (Sparring)','zweikampf|sparring|kampf');
+v(D,0,'Hosinsul',['Hosinsool','Hoshinsool','Hosin sul'],'Selbstverteidigung','selbstverteidig');
+v(D,1,'Poomsae',['Poomse','Pumse','Poomsae'],'Formen (festgelegter Formenlauf)','form|lauf');
+v(D,1,'Hogu',['Hoggu'],'Brustschutz (Kampfweste)','brust|weste|schutz|chest');
+v(D,1,'Ilbo Daeryeon',['Ilbo Taeryon','Ilbo Taeryeon','Ilbo Deryeon','Ilbo Daeryon','Il Bo Daeryeon'],'1-Schritt-Kampf','(1|ein|eins).?schritt|one.?step');
+v(D,3,'Ibo Daeryeon',['Ibo Taeryon','Ibo Daeryon','I Bo Daeryeon'],'2-Schritt-Kampf','(2|zwei).?schritt|two.?step');
+v(D,3,'Sambo Daeryeon',['Sambo Taeryon','Sambo Daeryon','Sam Bo Daeryeon'],'3-Schritt-Kampf','(3|drei).?schritt|three.?step');
+v(D,3,'Gyeokpa',['Kyokpa','Kyeokpa','Gyokpa'],'Bruchtest','bruch|break');
+v(D,3,'Kukkiwon',['Gukkiwon','Kukki Won'],'Welt-Taekwondo-Hauptquartier (Seoul)','hauptquartier|seoul|zentrale|welt|world|hq');
+[['Hana',['Hanna'],1],['Dul',['Dool'],2],['Set',['Sed','Seth'],3],['Net',['Ned'],4],['Daseot',['Dasot','Dasoet'],5],['Yeoseot',['Yosot','Yeosot','Yoseot'],6],['Ilgop',['Ilgob','Ilgup'],7],['Yeodeol',['Yodol','Yeodol','Yodeol'],8],['Ahop',['Ahob','Ahup'],9],['Yeol',['Yol','Yeul'],10]].forEach(([k,a,n])=>v(NN,0,k,a,String(n),'\\b'+n+'\\b|'+['','eins','zwei','drei','vier','funf','sechs','sieben','acht','neun','zehn'][n],{num:1}));
+[['Il',['Ill'],1],['I',['Ee','Yi'],2],['Sam',['Samm'],3],['Sa',['Saa'],4],['O',['Oh'],5],['Yuk',['Yook','Yuuk'],6],['Chil',['Jil','Chill'],7],['Pal',['Phal','Bal'],8],['Gu',['Ku','Goo'],9],['Sip',['Ship','Sib'],10]].forEach(([k,a,n])=>v(NS,2,k,a,String(n),'\\b'+n+'\\b|'+['','eins','zwei','drei','vier','funf','sechs','sieben','acht','neun','zehn'][n],{num:1}));
+V.forEach((e,i)=>e.id=i);
+
+/* Handgeschriebene Fragen: g=ab Grad, d=Schwierigkeit 1–3, c=Rubrik, q, a=richtige Antwort, w=falsche Antworten,
+   x=Erklärung, re=Regex für Freitext (Normalform ohne Umlaute), kw=Gruppen von Schlüsselwörtern, need=benötigte Gruppen */
+const H=[];
+const h=(g,d,c,q,a,w,x,o)=>H.push(Object.assign({g,d,c,q,a,w,x},o||{}));
+const PO='Prüfungsordnung',TH='Theorie & Geist',PS='Poomsae',ZK='Zweikampf & Technik',SV='Selbstverteidigung',BR='Bruchtest';
+/* --- Prüfungsordnung allgemein --- */
+h(0,1,PO,'Was wird beim 10. Kup (Weißgurt) laut Prüfungsordnung verlangt?','Keine Prüfung; vorausgesetzt werden Kenntnis und Beachtung der Verhaltensregeln im Dojang und beim Training',['Eine Prüfung mit Grundschule und Step-Sparring','Nur ein mündlicher Theorietest','Taegeuk Il Jang als Pflichtform'],'PO § 2: Zum 10. Kup erfolgt keine Prüfung.',{re:[/keine|nicht|entfall|verhalt|regel/]});
+h(0,1,PO,'Wie sind die Gürtelkategorien laut PO unterteilt?','Kup (Schülergrad), Poom und Dan (Meistergrad)',['Kyu, Poom und Sabom','Kup, Dan und Gup','Anfänger, Fortgeschrittene, Meister'],'PO § 1 Nr. 5: Kup = Schülergrad (Farbgürtel), Poom, Dan = Meistergrad.',{kw:[[/kup/],[/poom/],[/dan/]],need:3});
+h(0,1,PO,'Für wen gilt der rot-schwarze Gürtel (Poom)?','Kinder und Jugendliche unter 15 Jahren',['Alle Anwärter zwischen 1. Kup und 1. Dan','Erwachsene ab 40 Jahren','Jugendliche ab 15 Jahren'],'Poom = rot-schwarzer Gürtel für alle unter 15. Ab 15 Jahren gibt es den schwarzen Gürtel (Dan). Der Poomgrad kann nach Erreichen des Mindestalters ohne technische Prüfung in den Dangrad umgeschrieben werden.',{re:[/unter 15|<\s*15|kinder/]});
+h(0,1,PO,'Welche Dan-Grade zählen zu den „Leistungsgraden“?','1. bis 3. Dan',['1. bis 4. Dan','4. bis 9. Dan','1. bis 5. Dan'],'1.–3. Dan = Leistungsgrade, 4.–9. Dan = Lehrergrade.',{re:[/1\D{1,12}3/]});
+h(0,1,PO,'Wie viele Dan-Grade bilden die „Lehrergrade“?','4. bis 9. Dan',['3. bis 9. Dan','5. bis 9. Dan','6. bis 9. Dan'],'Lehrergrade: 4.–9. Dan; der Schwerpunkt liegt auf der Lehrerqualifikation.',{re:[/4\D{1,12}9/]});
+h(0,1,PO,'Wer benötigt für jede Prüfungsteilnahme eine schriftliche Einverständniserklärung?','Minderjährige Anwärter (von mindestens einer sorgeberechtigten Person)',['Alle Anwärter über 40','Nur Dan-Anwärter','Alle Poom-Anwärter ohne Sportpass'],'PO § 1 Nr. 3: Die Erklärung muss vor Prüfungsbeginn vorliegen.',{re:[/minderj|unter 18|kinder|jugend/]});
+h(1,2,PO,'Wie lautet der Prüfungsbereich, der bis einschließlich 5. Kup ein eigenständiges Prüfungsfach ist?','Überprüfung des Vorprogramms (Stichprobe)',['Wettkampfregeln','Bruchtest','Notwehrrecht'],'Die Überprüfung des Vorprogramms bis zum 5. Kup ist eigenständiges Prüfungsfach; sie erfolgt stichprobenweise.',{re:[/vorprogramm|stichprobe/]});
+h(0,2,PO,'Wer wählt die Stichproben aus dem Vorprogramm aus, wenn der Landesverband nichts verbindlich vorgibt?','Der Prüfer nach eigenem Ermessen',['Der Anwärter','Der Trainer des Anwärters','Das Los'],'PO § 1 Nr. 6.',{re:[/pruefer|prufer/]});
+h(1,1,PO,'Ab dem 8. Kup besteht die Prüfung aus Pflichtprogramm und…','Wahlpflichtprogramm',['Zusatzprogramm','Kürprogramm','Freiwilligem Bonusteil'],'Zum 9. Kup ist das Programm verpflichtend vorgegeben; ab dem 8. Kup kommt der Wahlpflichtteil hinzu.',{re:[/wahlpflicht|wahl/]});
+h(0,2,PO,'Wie wird die Prüfungsleistung je Prüfungsdisziplin bewertet?','Mit „Ja“ (ausreichend) oder „Nein“ (nicht ausreichend)',['Mit Schulnoten von 1 bis 6','Mit Punkten von 0 bis 10','Mit „Gut“, „Befriedigend“ oder „Mangelhaft“'],'PO Zweiter Teil § 2 Nr. 7 b.',{re:[/\bja\b.*\bnein\b|\bnein\b.*\bja\b/]});
+h(0,2,PO,'Wann gilt eine Prüfung als bestanden?','Wenn mehr als die Hälfte der Bereiche mit „Ja“ bewertet wurde',['Wenn alle Bereiche mit „Ja“ bewertet wurden','Wenn mindestens zwei Drittel „Ja“ erhalten','Wenn mindestens die Hälfte der Bereiche „Ja“ hat'],'PO Zweiter Teil § 2 Nr. 11: Mehr als die Hälfte (also nicht genau 50 %). Bei Dan-Prüfungen gilt das Mehrheitsergebnis der Kommission.',{re:[/mehr als die haelfte|mehr als die halfte|>\s*50|ueber die halfte|uber die halfte/]});
+h(0,3,PO,'Welche Qualitätsstufe genügt laut PO im Praxisteil bei Anfängern, bei Fortgeschrittenen und im Dan-Bereich?','Anfänger „Grobform“, Fortgeschrittene „Feinform“, Dan „Feinstform“',['Anfänger „Feinform“, Fortgeschrittene „Feinstform“, Dan „Perfektionsform“','Alle „Grobform“, Dan „Feinform“','Anfänger „Grundform“, Fortgeschrittene „Grobform“, Dan „Feinform“'],'PO Zweiter Teil § 2 Nr. 7 a: Anfänger mind. Grobform, Fortgeschrittene mind. Feinform, Dan hoher technischer Perfektionsgrad (Feinstform).',{kw:[[/grobform/],[/feinform/],[/feinstform/]],need:3});
+h(0,2,PO,'Wie oft darf eine Form bei Abbruch oder mangelhafter Ausführung auf Wunsch des Anwärters wiederholt werden?','Einmal; gewertet wird der bessere Lauf',['Zweimal; gewertet wird der letzte Lauf','Gar nicht','Einmal; gewertet wird der erste Lauf'],'PO Zweiter Teil § 2 Nr. 5 a (Kup- und Dan-Prüfungen).',{re:[/(ein ?mal|1x|einmal|\b1\b).*(besser)|besser.*(ein ?mal|\b1\b)/]});
+h(0,2,PO,'Nach welcher Frist kann eine nicht bestandene Kup-Prüfung frühestens wiederholt werden?','Nach 3 Wochen',['Nach 1 Woche','Nach 3 Monaten','Nach 6 Monaten'],'PO Zweiter Teil § 2 Nr. 13 b: Kup nach 3 Wochen, Dan nach 3 Monaten.',{re:[/\b3\b|drei/]});
+h(9,2,PO,'Nach welcher Frist kann eine nicht bestandene Dan-Prüfung frühestens wiederholt werden?','Nach 3 Monaten',['Nach 3 Wochen','Nach 6 Monaten','Nach 1 Jahr'],'Kup-Prüfungen nach 3 Wochen, Dan-Prüfungen nach 3 Monaten.',{re:[/\b3\b|drei/]});
+h(0,3,PO,'Welche Einspruchsmöglichkeit besteht gegen ein Prüfungsergebnis?','Nur gegen formelles Fehlverhalten des Prüfers oder Verfahrensmängel; schriftlich mit Begründung binnen 2 Wochen beim BPR',['Gegen jede Leistungsbewertung binnen 4 Wochen beim Landesverband','Gar kein Einspruch','Gegen jede Bewertung, mit Filmaufnahmen als Beweis'],'Die Leistungsbewertung selbst ist endgültig. Filmaufnahmen sind nicht als Beweismittel zugelassen. BPR = Bundesreferent für das Prüfungswesen.',{kw:[[/formell|verfahren|mangel|fehlverhalten/],[/2 wochen|zwei wochen|14 tage/],[/bpr|bundesreferent/]],need:2});
+h(0,2,PO,'Wie wird bei Kup-Prüfungen die Theorie geprüft?','Mündlich',['Schriftlich per Fragebogen','Praktisch als Demonstration','Gar nicht'],'Bei Poom- und Dan-Anwärtern entfällt die Theorieprüfung.',{re:[/muendlich|mundlich|mund/]});
+h(9,2,PO,'Wird bei Poom- und Dan-Prüfungen eine Theorieprüfung abgelegt?','Nein, sie entfällt',['Ja, schriftlich','Ja, mündlich','Nur zum 3. Dan'],'PO Zweiter Teil § 2 Nr. 5 d.',{re:[/nein|entfall|keine/]});
+h(0,3,PO,'Unter welcher Bedingung ist ein Überspringen eines Kup-Grades möglich?','Nur vom 9. direkt zum 8. Kup in derselben Prüfung, bei überdurchschnittlichen Leistungen und eingehaltenen Vorbereitungszeiten',['Von jedem Kup auf den übernächsten bei sehr guter Leistung','Nur vom 2. direkt zum 1. Kup','Gar nicht'],'PO Zweiter Teil § 2 Nr. 12: Ein weiteres Überspringen ist nicht möglich.',{kw:[[/9/],[/8/]],need:2});
+h(0,3,PO,'Ein Anwärter verletzt sich und kann die Prüfung nicht fortsetzen. Wann gilt sie als bestanden?','Wenn bis zum Abbruch mehr als die Hälfte der vorgesehenen Prüfungsfächer mit „Ja“ bewertet wurde',['Immer, wenn er sich selbst verletzt hat','Nie, sie muss wiederholt werden','Wenn mindestens ein Fach „Ja“ erhielt'],'PO Zweiter Teil § 2 Nr. 9 a. Verletzt ein Anwärter einen anderen allein schuldhaft, wird seine Prüfung als nicht bestanden gewertet.',{re:[/mehr als die (haelfte|halfte)|ueber die halfte|uber die halfte/]});
+h(0,2,PO,'Wer entscheidet über die Reihenfolge der Prüfungsdisziplinen?','Der Prüfer',['Der Anwärter','Der Verein','Der Landesverband'],'PO Zweiter Teil § 1 Nr. 7.',{re:[/pruefer|prufer/]});
+h(0,2,PO,'Wie viele Prüfer nehmen eine Kup-Prüfung ab und welche Lizenz müssen sie mindestens haben?','Ein Prüfer allein, mindestens Prüferlizenz Stufe C',['Zwei Prüfer, Stufe B','Drei Prüfer, Stufe A','Ein Prüfer, Stufe A'],'PO Zweiter Teil § 1 Nr. 5 a.',{kw:[[/allein|ein prufer|ein pruefer|\b1\b|einer|einzel/],[/\bc\b|stufe c/]],need:2});
+h(9,2,PO,'Wie setzt sich die Prüfungskommission bei Dan-Prüfungen grundsätzlich zusammen?','Drei lizenzierte Prüfer (Lizenzstufen B und A) mit einem Vorsitzenden',['Ein Prüfer mit Lizenz C','Zwei Prüfer','Fünf Prüfer'],'PO Zweiter Teil § 1 Nr. 6. Bei Vereins- und Landes-Dan zum 1. Dan/Poom reicht ein Prüfer mit Stufe B, zum 2. und 3. Dan/Poom ein Prüfer mit Stufe A.',{re:[/\b3\b|drei/]});
+h(0,3,PO,'Wer setzt die Höhe der Prüfungsgebühr bei Kup-Prüfungen fest, und darf der Prüfer sie einziehen?','Der Verein setzt sie fest; der Prüfer darf sie weder bestimmen noch einziehen',['Der Prüfer setzt sie fest und zieht sie ein','Der DTU-Bundesreferent setzt sie fest','Der Landesverband setzt sie fest, der Prüfer zieht sie ein'],'PO Dritter Teil § 2 Nr. 5 b. Bei Nichtbestehen oder Nichtteilnahme besteht kein Erstattungsanspruch.',{re:[/verein/]});
+h(0,3,PO,'Innerhalb welcher Frist trägt der Prüfer die Kup-Prüfungsergebnisse in die DTU-Datenbank ein?','Innerhalb von 7 Tagen',['Innerhalb von 24 Stunden','Innerhalb von 4 Wochen','Innerhalb von 3 Monaten'],'PO Zweiter Teil § 1 Nr. 5 e.',{re:[/\b7\b|sieben/]});
+h(0,3,PO,'Sind Prüfungen grundsätzlich öffentlich?','Ja, sofern eine störungsfreie Durchführung gewährleistet ist',['Nein, nur für Vereinsmitglieder','Nur Dan-Prüfungen','Nur wenn der Prüfer es erlaubt'],'PO Dritter Teil § 1 Nr. 5.',{re:[/\bja\b|oeffentlich|offentlich/]});
+h(9,3,PO,'Wie viele Bonuspunkte benötigen Poom- und Dan-Anwärter, damit eine „Nein“-Bewertung neutralisiert werden kann?','Poom 1,0 Punkte, Dan 2,0 Punkte; nur eine Nein-Bewertung pro Prüfung',['Poom 2,0, Dan 1,0; beliebig viele Nein-Bewertungen','Poom 0,5, Dan 1,0; zwei Nein-Bewertungen','Immer 3,0 Punkte'],'PO Zweiter Teil § 2 Nr. 8. Es können höchstens fünf Lehrgänge berücksichtigt werden.',{kw:[[/1[,.]0|\b1\b/],[/2[,.]0|\b2\b/]],need:2});
+h(0,3,PO,'Welche Prüfungsveranstaltungen sind in der DTU möglich?','Kup (10.–1.), Vereins-Dan (1.–3.), Landes-Dan (1.–9.), Bundes-Dan (4.–9.)',['Kup (10.–1.), Landes-Dan (1.–3.), Bundes-Dan (4.–9.)','Nur Kup und Landes-Dan','Kup (9.–1.), Vereins-Dan (1.–9.), Bundes-Dan (1.–9.)'],'PO Dritter Teil § 1 Nr. 3.');
+h(0,3,PO,'Wird das Dan-Zertifikat eines Poomgrades erst nach einer neuen technischen Prüfung ausgestellt?','Nein, der Poomgrad kann nach Erreichen des Mindestalters ohne technische Prüfung umgeschrieben werden; das Datum der Poomprüfung zählt',['Ja, immer','Nur ab dem 2. Poom','Nur auf Antrag des Vereins mit Prüfung'],'PO Dritter Teil § 2 Nr. 8.',{re:[/nein|ohne/]});
+h(12,2,PO,'Welche Zulassungsvoraussetzung besteht für die Prüfung zum 6. und 7. Dan?','Gültige DOSB-Trainer-Lizenz C „Taekwondo“',['Gültige Trainer-Lizenz B','Bundes-Kampfrichter-Lizenz','Keine'],'Zum 8. Dan und höher: DOSB-Trainer-Lizenz B oder Bundes-Kampfrichter-Lizenz der DTU.',{re:[/\bc\b|trainer.?lizenz c|lizenz c/]});
+h(12,2,PO,'Welche Zulassungsvoraussetzung besteht für die Prüfung zum 8. und 9. Dan?','DOSB-Trainer-Lizenz B „Taekwondo“ oder Bundes-Kampfrichter-Lizenz der DTU',['DOSB-Trainer-Lizenz C','Eine Prüferlizenz Stufe A','WT-Kampfrichterlizenz'],'PO Erster Teil § 1 Nr. 7 c.',{kw:[[/\bb\b/],[/kampfrichter/]],need:1});
+h(12,3,PO,'Welche Anforderungen gelten für die Partner, die ein Dan-Anwärter für Prüfungsteile mitbringt?','Die Partner sollen mindestens den 2. Kup besitzen; der Anwärter verantwortet Vorbereitung und Präsentation',['Mindestens den 1. Dan','Mindestens den 5. Kup','Es gibt keine Anforderungen'],'PO Zweiter Teil § 2 Nr. 2 d.',{re:[/2\.?\s*kup/]});
+h(12,3,PO,'Worauf liegen bei den Vorführprogrammen der Lehrergrade die Bewertungsschwerpunkte?','Schwierigkeitsgrad, Ideenreichtum, Darstellungsform und Darbietung',['Nur auf der Kraftentwicklung','Auf den Wettkampferfolgen des Anwärters','Auf der Länge der Vorführung'],'PO Zweiter Teil § 2 Nr. 2 d.',{kw:[[/schwierig/],[/ideen/],[/darstellung|darbietung|praesent/]],need:2});
+/* --- Zweikampf & Technik --- */
+h(2,2,ZK,'Ab welcher Graduierung können wahlweise Hyong- oder Poomsae-Formen gelaufen werden, und was gilt bei Dan-Prüfungen?','Ab 7. Kup wahlweise Hyong oder Poomsae; bei Dan-Prüfungen nur Poomsae',['Ab 9. Kup wahlweise; Dan nur Hyong','Ab 4. Kup wahlweise; Dan beides','Nur Poomsae in allen Prüfungen'],'PO Erster Teil § 3 Nr. 3 B.',{kw:[[/7/],[/dan.*(nur )?poomsae|poomsae.*dan/]],need:1});
+h(2,2,PS,'Wie beginnt jede Form in der Prüfung?','Mit Blickrichtung zum Prüfertisch; der Anwärter sagt zuvor den Namen der Form an; der Ablauf erfolgt ohne Einzelkommandos',['Mit dem Rücken zum Prüfer; der Prüfer gibt Einzelkommandos','Seitlich zum Prüfertisch; der Prüfer sagt die Form an','Mit Blick zur Flagge ohne Ansage'],'PO Erster Teil § 3 Nr. 3 B.',{kw:[[/pruefertisch|prufertisch|pruefer|prufer/],[/ansag|nennt|sagt/],[/ohne|kommando/]],need:2});
+h(2,3,PS,'Welche Anforderungskriterien gelten laut PO für die Poomsae-Formenschule?','Korrekter Technik- und Bewegungsablauf, Einhaltung des Diagramms, Ablaufrhythmus, Kampfschrei an vorgegebener Stelle',['Nur die Geschwindigkeit des Laufs','Ausdruck, Musikalität und Kreativität','Nur die Anzahl der Bewegungen'],'PO Erster Teil § 3 Nr. 3 B: dazu kommen die allgemeingültigen Anforderungskriterien für TKD-Techniken.',{kw:[[/ablauf|bewegung/],[/diagramm/],[/rhythm/],[/kampfschrei|kihap/]],need:3});
+h(1,2,ZK,'Wie beginnt jede Übung im 1-Schritt-Kampf (Technik)?','Der Angreifer geht einen Schritt zurück und gibt gleichzeitig einen Kampfschrei ab; der Angriff erfolgt, nachdem der Verteidiger ebenfalls per Kampfschrei Bereitschaft angezeigt hat',['Der Verteidiger geht zurück, der Angreifer greift sofort an','Beide verbeugen sich und greifen gleichzeitig an','Der Prüfer gibt das Kommando „Sijak“ für jede Übung'],'PO Erster Teil § 3 Nr. 3 C c. Die Übungen werden seitlich zum Prüfertisch durchgeführt.',{kw:[[/schritt zurueck|schritt zuruck|zurueck|zuruck/],[/kampfschrei|kihap/],[/verteidiger/]],need:2});
+h(1,2,ZK,'Welche Stellung nimmt der Angreifer beim formenorientierten 1-Schritt-Kampf für einen Fauststoß ein, und welche vor einem Fußangriff?','Faust: große Vorwärtsbeugestellung (Ap Kubi); Fuß: Rückwärtsbeugestellung (Dwit Kubi)',['Faust: Dwit Kubi; Fuß: Ap Kubi','Faust: Juchum Seogi; Fuß: Moa Seogi','Beide: Naranhi Seogi'],'PO Erster Teil § 3 Nr. 3 C c (die PO schreibt „ab gubi“ und „dwit gubi“).',{kw:[[/ap.?(k|g)ubi|ab.?gubi|vorw/],[/dwit|dwi.?(k|g)ubi|ruckw|rueckw/]],need:2});
+h(2,3,ZK,'Wie viele Angriffstechniken darf der Verteidiger im 1-Schritt-Kampf als Konter höchstens zeigen, und wie zählen Doppeltechniken?','Höchstens drei; Doppeltechniken zählen als eine Technik',['Höchstens fünf; Doppeltechniken zählen doppelt','Höchstens zwei; Doppeltechniken zählen als eine','Beliebig viele'],'PO Erster Teil § 3 Nr. 3 C c und 4 E d. Halten, Greifen, Werfen und SV-Techniken sind im 1-Schritt-Kampf nicht zulässig.',{kw:[[/\b3\b|drei/],[/doppel.*(1|ein)|(1|ein).*doppel/]],need:2});
+h(2,3,ZK,'Wohin richtet der Angreifer beim formenorientierten 1-Schritt-Kampf seine Fauststöße und Fußangriffe?','Faust zur Körpermitte (Solar Plexus) oder zum Kopf (Nase); Fußangriffe mindestens zur Körpermitte',['Nur zum Kopf','Faust zur Körpermitte, Fuß zum Knie','Immer zum Bein'],'PO Erster Teil § 3 Nr. 3 C c.',{kw:[[/solar|koerpermitte|korpermitte|magen/],[/nase|kopf|gesicht/]],need:1});
+h(3,2,ZK,'Was unterscheidet den 2-Schritt-Kampf vom 1-Schritt-Kampf?','Der Angreifer geht zwei Schritte nach vorne und greift bei jedem Schritt an; der Verteidiger kontert erst nach dem letzten Angriff',['Der Verteidiger greift zuerst an','Es gibt zwei Verteidiger','Der Angriff erfolgt nur mit Fußtechniken'],'PO Erster Teil § 3 Nr. 3 D; beim 3-Schritt-Kampf geht der Angreifer drei Schritte vor.',{kw:[[/zwei|2/],[/jeden schritt|bei jedem|je schritt/],[/nach dem letzten|letzten angriff|erst nach/]],need:2});
+h(5,3,PS,'Wie läuft eine Poomsae-Applikation praktisch ab?','In drei Varianten: allein nach WOP-Regeln, mit Partnern in gemäßigtem Tempo, mit Partnern in realitätsnaher Geschwindigkeit bei leichtem Kontakt',['Nur einmal mit Partnern in vollem Tempo','Zweimal allein, einmal mit Partner','Nur als Erklärung ohne Partner'],'PO Erster Teil § 3 Nr. 3 F b. Die Partner müssen Schutzausrüstung tragen, dem Anwärter ist sie freigestellt.',{kw:[[/allein|wop/],[/gemaessigt|gemass|langsam/],[/realit|leichtem kontakt|schnell/]],need:2});
+h(5,2,PS,'Woraus wählt der Anwärter die Sequenzen für die Poomsae-Applikation aus?','Aus den Poomsae-Formen der bisherigen Prüfungsprogramme',['Aus beliebigen Hyong-Formen','Aus den Taegeuk-Formen, die der Prüfer vorgibt','Aus einer freien Choreografie'],'PO Erster Teil § 3 Nr. 3 F d.',{re:[/bisherig|vorprogramm|poomsae/]});
+h(0,2,ZK,'Worum geht es beim Pratzensparring?','Von Angriffstechniken gegen ruhende Ziele bis zu Kombinationen auf 2 Pratzen, bei denen der Pratzenhalter Distanz und Tempo variiert',['Um Kämpfe mit vollem Körperkontakt','Um das Brechen von Brettern','Um die Abwehr von Stockangriffen'],'PO Erster Teil § 3 Nr. 4 B. Kriterien: Variabilität, Schnelligkeit, Distanzeinschätzung, Treffsicherheit, Krafteinwirkung.',{kw:[[/pratze/],[/kombination|mehrfach|variab|distanz|tempo/]],need:1});
+h(0,2,ZK,'Worauf kommt es beim Step-Sparring an?','Auf flexible Bewegung in Kampfhaltung, Distanzwahrung und Schrittvielfalt',['Auf harte Treffer','Auf das Brechen von Brettern','Auf feste Formen'],'PO Erster Teil § 3 Nr. 4 A. Das Spektrum reicht von Bewegungen „auf der Linie“ bis zur freien Bewegung im Raum.',{kw:[[/distanz|abstand/],[/bewegung|schritt|flexib/]],need:1});
+h(5,2,ZK,'Was gehört beim Situations-Sparring zwingend zur Ausrüstung und zum Kontakt?','Persönliche vollständige Schutzausrüstung; leichter Körperkontakt ohne Kopftreffer',['Keine Schutzausrüstung; voller Kontakt','Nur Mundschutz; leichter Kontakt mit Kopftreffern','Brustschutz allein; harter Kontakt'],'PO Erster Teil § 3 Nr. 4 C a.',{kw:[[/schutz/],[/leicht/]],need:2});
+h(5,3,ZK,'Nenne zwei Beispiele für Sequenzen im Situations-Sparring.','z. B. Angriff–Konter (1-1), Angriff–2 Konter (1-2), 2 Angriffe–Konter (2-1), 2 Angriffe–2 Konter (2-2), Angriff–Konter–Gegenkonter (1-1-1)',['Nur 1-1 und 3-3','Angriff–Block–Pause','Konter vor Angriff'],'PO Erster Teil § 3 Nr. 4 C b.',{re:[/1.?1|1.?2|2.?1|2.?2|konter/]});
+h(5,2,ZK,'Was unterscheidet das Sparring mit Aufgabenstellung vom Situations-Sparring?','Dem Anwärter werden technische, strategische oder taktische Aufgaben vorgegeben, die er selbstständig umsetzt',['Es wird ohne Schutzausrüstung geführt','Es hat keine Regeln','Es besteht nur aus Pratzenarbeit'],'PO Erster Teil § 3 Nr. 4 D.',{re:[/aufgabe|vorgab|taktisch|strateg/]});
+h(1,2,ZK,'Was unterscheidet das Freie Sparring vom Sparring mit Aufgabenstellung?','Beim Freien Sparring gibt es keine inhaltlichen Vorgaben; die Kontrahenten gestalten den Kampf selbst',['Es wird ohne Kampfleiter geführt','Es wird mit vollem Kontakt und Kopftreffern geführt','Es dauert immer drei Runden'],'PO Erster Teil § 3 Nr. 4 F. Es geht nicht um einen Titel, sondern ob der Anwärter die Anforderungen bewältigt.',{re:[/keine.*(vorgab|inhalt)|selbst|frei/]});
+h(1,3,ZK,'Wie beginnt das Freie Sparring in der Prüfung?','Beide stehen seitlich zum Prüfertisch, setzen einen Fuß zurück, nehmen Kampfstellung ein und geben einen Kampfschrei ab; der Kampf beginnt auf Freigabe des Kampfleiters',['Auf das Kommando „Sijak“ des Anwärters','Nach einer Verbeugung zum Prüfer ohne Kampfschrei','Mit einem Schritt vor und Verbeugung'],'PO Erster Teil § 3 Nr. 4 F d.',{kw:[[/seitlich/],[/kampfschrei|kihap/],[/kampfleiter|freigabe/]],need:2});
+/* --- Bruchtest --- */
+h(5,1,BR,'Aus welchem Material bestehen Bruchtest-Bretter laut PO und wie groß sind sie?','Fichtenholzbretter, ca. 30 × 30 cm',['Buchenholz, 20 × 20 cm','Kiefer, 40 × 40 cm','Ziegel oder Fichtenbretter nach Wahl'],'PO Erster Teil § 3 Nr. 5 b.',{kw:[[/fichte/],[/30/]],need:1});
+h(5,2,BR,'Welche Brettstärke gilt für Männer von 18 bis 39 Jahren?','2,5 cm',['1,5 cm','2,0 cm','3,0 cm'],'Frauen 18–39: 2,0 cm; Jugendliche 15–17 sowie Frauen und Männer ab 40: 1,5 cm. Bei 2,5 und 2,0 cm wird eine Toleranz von 0,2 cm akzeptiert.',{re:[/2[,.]5/]});
+h(5,2,BR,'Welche Brettstärke gilt für Frauen von 18 bis 39 Jahren?','2,0 cm',['1,5 cm','2,5 cm','3,0 cm'],'Männer 18–39: 2,5 cm. Toleranz: 0,2 cm.',{re:[/2[,.]0|\b2\b\s*cm|zwei/]});
+h(5,2,BR,'Welche Brettstärke gilt für Jugendliche von 15 bis 17 sowie für Erwachsene ab 40 Jahren?','1,5 cm',['2,0 cm','2,5 cm','1,0 cm'],'PO Erster Teil § 3 Nr. 5 b.',{re:[/1[,.]5/]});
+h(5,1,BR,'Dürfen Kinder und Jugendliche unter 15 Jahren Bruchtests machen?','Nein, sie wählen stattdessen eine Option aus einem der Wahlbereiche',['Ja, mit 1,5 cm Brettern','Ja, aber nur mit Fußtechniken','Nur mit Zustimmung der Eltern'],'PO Erster Teil § 3 Nr. 5 a.',{re:[/nein|keine/]});
+h(5,3,BR,'Was darf ein Anwärter über 40 Jahren anstelle einer vorgeschriebenen Sprungtechnik wählen?','Einen Bruchtest ohne Sprung',['Gar nichts, die Sprungtechnik ist Pflicht','Einen Bruchtest mit zwei Brettern','Eine Poomsae'],'PO Erster Teil § 3 Nr. 5 a.',{re:[/ohne sprung|kein.*sprung/]});
+h(5,3,BR,'Was ist eine Bruchtest-Kombination laut PO?','Mindestens 2 Bruchtests, zwischen denen höchstens zwei Schritte liegen und keine Konzentrationsphase oder Verzögerung erkennbar ist',['Zwei Bretter, die gleichzeitig gebrochen werden','Mindestens 3 Bruchtests mit freier Pause','Ein Bruchtest mit Hand und Fuß nacheinander'],'PO Erster Teil § 3 Nr. 5 f. Die Kombination wird als eine Einheit bewertet.',{kw:[[/2|zwei/],[/schritt/],[/konzentration|verzoeger|verzoger|fluss/]],need:2});
+h(9,3,BR,'In welcher Höhe erfolgt ein Sprungbruchtest nach oben in der Regel mindestens?','Mindestens Kopfhöhe (Gesichtsmitte) des Anwärters',['Brusthöhe','Hüfthöhe','Scheitelhöhe plus 20 cm'],'PO Erster Teil § 3 Nr. 5 g.',{re:[/kopf|gesicht/]});
+h(5,2,BR,'Wer ist für den Aufbau des Bruchtests und die Einweisung der Bretthalter verantwortlich?','Der Anwärter (bei Kup-Graden und Jugendlichen sind Hilfestellungen möglich)',['Der Prüfer','Der Verein','Der Landesverband'],'Vor der Durchführung sagt der Anwärter die Technik an. PO Erster Teil § 3 Nr. 5 e.',{re:[/anwaerter|anwarter|pruefling|prufling/]});
+h(5,2,BR,'Was gilt, wenn der Bruchtest beim ersten Mal nicht gelingt?','Der Anwärter kann einen weiteren Versuch unternehmen (auch mit anderer Technik); der bessere Versuch wird gewertet',['Die Prüfung ist beendet','Es ist kein zweiter Versuch erlaubt','Der Prüfer wählt eine leichtere Technik'],'PO Zweiter Teil § 2 Nr. 5 b.',{re:[/weiter|zweit|erneut|besser/]});
+h(12,3,BR,'Wie viele Bruchtests sind bei Lehrergraden höchstens zulässig, und wie müssen mehrere ausgeführt werden?','Bis zu 4; mehrere müssen als Kombination ausgeführt werden',['Bis zu 2; einzeln','Bis zu 6; beliebig','Genau 3 als Kombination'],'PO Erster Teil § 3 Nr. 5 h.',{kw:[[/4|vier/],[/kombination/]],need:2});
+h(9,3,BR,'Auf welche Brettstärke darf bei Dan-Prüfungen mit hohem Schwierigkeitsgrad reduziert werden?','Männer bis auf 2 cm, Frauen bis auf 1,5 cm',['Männer 1,5 cm, Frauen 1,0 cm','Männer 2,5 cm, Frauen 2,0 cm','Gar nicht reduzierbar'],'PO Erster Teil § 3 Nr. 5 b.',{kw:[[/2/],[/1[,.]5/]],need:2});
+/* --- Selbstverteidigung --- */
+h(2,2,SV,'Wie ist die „Lange Distanz“ in der SV laut PO definiert?','Der Angreifer kann den Verteidiger nur mit Fußtritten erreichen',['Der Angreifer erreicht den Verteidiger mit Faustschlägen','Abstand von 30 cm bis Körperkontakt','Der Angreifer liegt am Boden'],'PO Erster Teil § 3 Nr. 6 e.',{re:[/fusstritt|fustritt|tritt|fuss/]});
+h(2,2,SV,'Wie ist die „Mittlere Distanz“ definiert?','Der Angreifer kann den Verteidiger mit Faustschlägen erreichen',['Nur mit Fußtritten','30 cm bis Körperkontakt','Bodenlage'],'PO Erster Teil § 3 Nr. 6 e.',{re:[/faust|schlag|hand/]});
+h(2,3,SV,'Wie ist die „Nahe Distanz“ definiert?','Von 30 cm Abstand bis Körperkontakt',['Alles unter 1 Meter','Nur Körperkontakt','Ab 1 Meter bis 2 Meter'],'PO Erster Teil § 3 Nr. 6 e. Daneben gibt es die Boden-Grundsituationen.',{re:[/30/]});
+h(1,2,SV,'Welche Bedeutung hat die Fallschule in der PO?','Sie dient der Verletzungsprävention und kann auf Verlangen des Prüfers in vollem Umfang abgeprüft werden',['Sie ist nur für Dan-Prüfungen relevant','Sie ist Teil des Bruchtests','Sie wird nur bei Kindern geprüft'],'PO Erster Teil § 3 Nr. 6 d.',{re:[/verletz|praevention|pravention|schutz/]});
+h(3,2,SV,'Unter welchem rechtlichen Aspekt stehen die SV-Übungen laut PO?','Notwehrrecht und Verhältnismäßigkeit der Mittel; Eigensicherung hat besondere Bedeutung',['Nur unter dem Aspekt des Wettkampfrechts','Unter dem Strafrecht ohne Einschränkung','Unter dem Hausrecht des Dojang'],'PO Erster Teil § 3 Nr. 6 b.',{re:[/notwehr|verhaeltnis|verhaltnis/]});
+h(5,2,SV,'Welche Übungswaffen sind in der SV zulässig?','Nur gefahrlose Übungswaffen (z. B. Stock und Messer); spitze, scharfe oder verletzungsträchtige Gegenstände sind verboten',['Echte Messer nach Prüferfreigabe','Nur Holzschwerter','Jede Waffe, wenn der Partner Schutz trägt'],'PO Erster Teil § 3 Nr. 6 f.',{re:[/gefahrlos|uebungs|ubungs|stock|messer/]});
+h(3,2,SV,'Wird bei Jugendlichen unter 15 Jahren die Selbstverteidigung gegen Waffenangriffe geprüft?','Nein',['Ja, nur mit Stock','Ja, nur mit Messer','Ja, mit Schutzausrüstung'],'PO Erster Teil § 3 Nr. 6 a.',{re:[/nein|nicht|keine/]});
+h(12,2,SV,'Wie lange darf das selbst erstellte SV-Programm bei Lehrergraden höchstens dauern?','3 Minuten',['1 Minute','5 Minuten','10 Minuten'],'PO Erster Teil § 3 Nr. 6 g; die Vorführung erfolgt mit eigenen Partnern.',{re:[/\b3\b|drei/]});
+h(3,2,SV,'Wer bestimmt bei mehreren Angreifern in der SV die Positionen?','Der Anwärter',['Der Prüfer','Der Kampfleiter','Das Los'],'PO Erster Teil § 3 Nr. 6 c. SV-Übungen beginnen seitlich zum Prüfertisch.',{re:[/anwaerter|anwarter|prufling|pruefling/]});
+/* --- Theorie & Geist --- */
+h(0,1,TH,'Was bedeutet „Taekwondo“ wörtlich?','Weg des Fußes und der Faust (Tae = Fuß, Kwon = Faust, Do = Weg)',['Weg der leeren Hand','Kunst des Schwertes','Weg des Kampfes ohne Gewalt'],'Tae = Fuß (Treten), Kwon = Faust (Schlagen), Do = Weg (Lebensweg, Philosophie).',{kw:[[/fuss|fus/],[/faust|hand/],[/weg/]],need:2});
+h(0,1,TH,'Welche Bedeutung hat der Kampfschrei (Kihap)?','Er bündelt die Energie, unterstützt Atmung und Körperspannung und zeigt Entschlossenheit',['Er dient nur der Einschüchterung','Er ist ein Zeichen für Aufgabe','Er ist eine Begrüßung des Prüfers'],'Kampfschrei zählt laut PO zu den physischen Voraussetzungen (z. B. Atmung, Körperspannung).',{re:[/energie|konzentr|atmung|spannung|entschlossen/]});
+h(0,1,TH,'Was ist eine Poomsae?','Ein festgelegter Ablauf von Abwehr- und Angriffstechniken gegen imaginäre Gegner (Form)',['Ein Wettkampf gegen einen Partner','Ein Bruchtest','Ein Gürtelknoten'],'Poomsae = Formenlauf; Diagramm, Rhythmus und Kampfschrei werden bewertet.',{re:[/form|ablauf|imaginaer|imaginar|gegner|lauf/]});
+h(4,2,TH,'Nenne mindestens drei der fünf Grundprinzipien (Tenets) des Taekwondo.','Yeui (Höflichkeit), Yeomchi (Integrität), Innae (Ausdauer), Geukgi (Selbstbeherrschung), Baekjeol Bulgul (unbeugsamer Geist)',['Yeui, Yeomchi, Hansu, Jitae, Ilyeo','Yin, Yang, Geon, Gon, Gam','Charyeot, Junbi, Sijak, Geuman, Baro'],'Die Tenets sind Teil der „Geistigen Hintergründe“ (5. Kup).',{kw:[[/hoeflich|hoflich|yeui|ye ui|courtesy|respekt/],[/integrit|yeomchi|ehrlich|anstand/],[/ausdauer|innae|durchhalt|hartnaeck|hartnack/],[/selbstbeherrsch|selbstkontroll|geukgi|kukki|guk ?gi/],[/unbeug|unbezwing|unbesieg|baekjeol|bulgul|unbeug|unerschuett|unerschutt/]],need:3});
+h(4,2,TH,'Was bedeutet „Taegeuk“?','Urprinzip (das große Äußerste): die Harmonie von Yin und Yang (Eum und Yang)',['Wasserfall','Weiße Hand','Drachenfeder'],'Taegeuk (auch im Staatswappen/der Flagge Koreas) ist das Symbol für Harmonie der Gegensätze; die acht Formen stehen für die acht Trigramme.',{re:[/yin|yang|eum|urprinzip|harmonie|gegensatz/]});
+h(0,2,TH,'Wofür steht Dojang wörtlich?','Ort, an dem der „Weg“ (Do) geübt wird: die Trainingshalle',['Der Gürtel','Das Kommando zum Beginn','Die Prüfungsordnung'],'Dojang = Übungsstätte des Weges.',{re:[/ort|halle|uebungs|ubungs|training|weg/]});
+h(4,3,TH,'Nenne drei physische Voraussetzungen für wirksame Techniken laut PO.','z. B. Atmung, Gegenzug/Gegenbewegung, Hüfteinsatz, Körperspannung/-entspannung, Gleichgewicht, Schnelligkeit, Beweglichkeit, Reaktionsfähigkeit, Blickrichtung, Kampfschrei, Kraftausdauer',['Nur Körpergröße, Gewicht und Alter','Gürtelfarbe, Kondition, Bruchtestbretter','Schutzausrüstung, Dobok, Sportpass'],'PO Erster Teil § 3 Nr. 1 b.',{kw:[[/atm/],[/gegenzug|gegenbewegung/],[/huef|huf/],[/spannung|entspann/],[/gleichgewicht/],[/schnell|dynamik/],[/beweglich/],[/reaktion/],[/blick/],[/kampfschrei|kihap/],[/ausdauer|leistungsf/]],need:3});
+h(4,3,TH,'Nenne drei technisch-motorische Prinzipien laut PO.','z. B. zweckmäßige, aufeinander abgestimmte Bewegungsabläufe, Koordination, Effizienz und Effektivität, Kraftwirkung, Brennpunkt',['Gürtelfarbe, Vorbereitungszeit, Prüfungsgebühr','Nur Schnelligkeit','Nur Kraft'],'PO Erster Teil § 3 Nr. 1 a.',{kw:[[/bewegungsablauf|ablaeufe|ablauf|abgestimmt/],[/koordination/],[/effizien/],[/effektiv/],[/kraftwirkung|kraft/],[/brennpunkt/]],need:3});
+h(4,3,TH,'Nenne drei mentale Grundlagen laut PO.','z. B. Selbstdisziplin, Souveränität, Entschlossenheit, Zielgerichtetheit, Kampfgeist, Konzentration, Flexibilität, Harmonie, Respekt gegenüber dem Partner',['Reaktionsvermögen, Atmung, Hüfteinsatz','Gleichgewicht, Schnelligkeit, Dynamik','Körpergröße, Statur, Alter'],'PO Erster Teil § 3 Nr. 1 c.',{kw:[[/disziplin/],[/souver/],[/entschlossen/],[/zielgerichtet|ziel/],[/kampfgeist/],[/konzentration/],[/flexib/],[/harmonie/],[/respekt/]],need:3});
+h(5,2,TH,'Wozu dient die Kenntnis der vitalen Körperpunkte im SV- und Kampfkontext?','Techniken zielgerichtet gegen empfindliche Punkte zu richten und gleichzeitig Verletzungen beim Training zu vermeiden',['Um Gegner zu verletzen','Um Bruchtests zu bestehen','Um die Gürtelfarbe zu bestimmen'],'Zum 4. Kup wird die „Kenntnis der vitalen Körperpunkte“ verlangt; Angriffstechniken im 1-Schritt-Kampf sind gegen einen vitalen Punkt zu richten.',{re:[/vital|empfindlich|wirkung|ziel|verletz/]});
+h(8,2,TH,'Welche zusätzlichen Theorieinhalte kommen zum 1. Kup hinzu?','Organisation und Aufbau der DTU und des zuständigen Landesverbands sowie Grundkenntnisse zur Trainingslehre',['Notwehrrecht','Technikprinzipien','Vitale Körperpunkte'],'PO Erster Teil § 2, 1. Kup.',{kw:[[/dtu|landesverband|\blv\b|organisation|aufbau/],[/trainingslehre/]],need:1});
+h(1,2,TH,'Welche Theorie kommt zum 8. Kup hinzu?','Wettkampfregeln nach WOZ oder WOP',['Notwehrrecht','Kenntnis der vitalen Körperpunkte','Technikprinzipien'],'WOZ = Wettkampfordnung für Zweikampf, WOP = Wettkampfordnung für Poomsae-Technik.',{re:[/wett.?kampf|woz|wop/]});
+/* --- Poomsae allgemein --- */
+h(9,2,PS,'Welche Pflichtform gilt neben einer Form aus dem Vorprogramm (nach Losvorgabe) zum 1. Dan?','Taegeuk Pal Jang (8. Form)',['Taegeuk Chil Jang','Koryeo','Keumgang'],'PO: 1. Poom/Dan = 1 Form aus dem Vorprogramm nach Losvorgabe + Taegeuk Pal Jang.',{fz:['Taegeuk Pal Jang','Pal Jang','Palgwe Pal Jang'],re:[/pal ?jang|8\.? ?form|achte/]});
+h(9,2,PS,'Wie wird die Vorprogramm-Form bei Prüfungen zum 1. bis 3. Dan bestimmt, wie bei den Lehrergraden ab 4. Dan?','1.–3. Dan: nach Losvorgabe; 4. und 5. Dan: nach eigener Wahl',['Immer nach eigener Wahl','Immer nach Losvorgabe','Vom Landesverband festgelegt'],'PO § 2, Pflichtprogramm Technik.',{kw:[[/los/],[/eigen|wahl/]],need:2});
+/* --- Verband & Struktur --- */
+const VB='Verband & Struktur';
+h(8,2,VB,'In welchen Dachverbänden ist die DTU Mitglied?','DOSB (Deutscher Olympischer Sportbund), ETU (Europa) und WT (Welt)',['Nur im DOSB','DOSB und ITF','ETU und ITF'],'Die DTU (gegründet 1981) ist der größte Taekwondo-Verband in Deutschland und der einzige, den der DOSB für die Olympischen Spiele zulässt.',{kw:[[/dosb/],[/etu|europa/],[/\bwt\b|world|welt/]],need:2});
+h(8,2,VB,'Wofür steht „WT“?','World Taekwondo, der Weltverband',['Western Taekwondo','World Taekwondo Technique','Weltturnierverband'],'WT ist der Weltverband; die ETU (Europäische Taekwondo Union) ist der europäische Dachverband.',{re:[/world/]});
+h(8,3,VB,'In welchem Jahr wurde die Deutsche Taekwondo Union gegründet?','1981',['1966','1972','1990'],'Angabe nach öffentlich zugänglicher Verbandsinformation (u. a. Wikipedia).',{re:[/1981/]});
+h(8,3,VB,'Wie viele Landesverbände (LV) hat die DTU laut ihrer Website?','18',['12','16','20'],'Angabe der DTU-Website (abgerufen im Oktober 2026); die Zahl kann sich ändern. Die Landesverbände regeln u. a. Kup-Prüfungen, den Bezug von Prüfungsmaterial und Landes-Danprüfungen.',{re:[/\b18\b|achtzehn/]});
+h(8,2,VB,'Welche Rolle hat der Kukkiwon für die Formen?','Das Welt-Taekwondo-Hauptquartier in Seoul; seine Vorgaben und Veröffentlichungen sind Maßstab für den Ablauf der Formen',['Der Name eines Wettkampfsystems der ETU','Der deutsche Prüfungsausschuss','Das Prüfungsorgan der DTU für Dan-Grade'],'PO Erster Teil § 3 Nr. 3 B: Ablauf, Technikausführung und Kampfschrei orientieren sich am DTU-Standard und an den Vorgaben des Kukkiwon.',{re:[/seoul|hauptquartier|welt/]});
+h(8,2,VB,'Wer übt innerhalb der DTU die Fachaufsicht und Kontrolle über das Prüfungs- und Passwesen aus?','Der Bundesreferent für das Prüfungswesen (BPR)',['Der DTU-Präsident persönlich','Der jeweilige Landesverbandspräsident','Der Bundestrainer'],'PO Dritter Teil § 1 Nr. 2 a: Der BPR überwacht die Einhaltung der Ordnungen und regelt Sonderfälle. Er darf jederzeit Auskünfte von den LV verlangen.',{re:[/bpr|bundesreferent/]});
+h(8,2,VB,'Wem obliegt laut PO die Prüfungshoheit?','Der DTU',['Dem Landesverband','Dem ausrichtenden Verein','Dem Prüfer'],'PO Dritter Teil § 1 Nr. 2 a.',{re:[/dtu|deutsche taekwondo/]});
+h(8,3,VB,'Wer entscheidet über Angelegenheiten, die in der PO nicht geregelt sind?','Der BPR; er kann dabei Verfahrensabläufe vorgeben',['Das DTU-Präsidium','Der Landesverband','Die Mitgliederversammlung (MV)'],'PO Dritter Teil § 1 Nr. 2 e.',{re:[/bpr|bundesreferent/]});
+h(8,3,VB,'Wer entscheidet bei Besonderheiten während einer Landes-Danprüfung, die weder die PO noch das sonstige Regelwerk klärt?','Der LPR (Landesprüfungsreferent), im Sinne des Anwärters',['Der BPR','Der Prüfer allein','Der Landesverband per Abstimmung'],'PO Dritter Teil § 1 Nr. 2 d: Kup- und Vereins-Danprüfungen: Prüfer bzw. Kommissionsvorsitzender; Landes-Danprüfungen: LPR; Bundes-Danprüfungen: BPR. Immer im Sinne des Anwärters.',{re:[/lpr|landespruef|landesprüf|landesreferent/]});
+h(8,3,VB,'Wer entscheidet bei einer Bundes-Danprüfung über Besonderheiten, die die PO nicht regelt?','Der BPR',['Der LPR','Der Prüfer allein','Der DTU-Vizepräsident'],'PO Dritter Teil § 1 Nr. 2 d, jeweils im Sinne des Anwärters.',{re:[/bpr|bundesreferent/]});
+h(8,3,VB,'Kann der BPR Prüfungsaufgaben an die Landesverbände übertragen?','Ja: Kontrolle und das Recht, Landes-Danprüfungen sowie Kup- und Vereins-Danprüfungen durchzuführen, kann er auf LV bzw. Vereine übertragen; im begründeten Fall zieht er sie wieder an sich',['Nein, alle Prüfungen führt er selbst durch','Nur Bundes-Danprüfungen','Nur Kup-Prüfungen, ohne Rückholmöglichkeit'],'PO Dritter Teil § 1 Nr. 2 b.',{re:[/\bja\b|uebertr|ubertr|delegier/]});
+h(8,3,VB,'Was besagt das „Konkurrenzverbot“ in der PO?','LV und ihre Mitglieder dürfen außerhalb der Vorgaben der PO keine TKD-Prüfungen veranstalten oder durchführen',['Prüfer dürfen nicht für mehrere Vereine prüfen','Zwei Vereine dürfen nicht am gleichen Tag prüfen','Anwärter dürfen nicht bei zwei Verbänden prüfen'],'PO Dritter Teil § 1 Nr. 6.',{re:[/ausser|nicht.*pruef|nicht.*pruf|keine.*pruef|keine.*pruf/]});
+h(8,2,VB,'Wo werden Sportpässe, Prüfungslisten, Urkunden und Prüfungsmarken bezogen?','Beim zuständigen Landesverband; der Erwerb bei einem anderen LV ist nicht zulässig',['Beim Verein','Beim Prüfer','Beim Weltverband WT'],'PO Dritter Teil § 2 Nr. 3. Es dürfen nur die von der DTU bestimmten Dokumente und Muster verwendet werden.',{re:[/landesverband|\blv\b/]});
+h(8,3,VB,'Wer stellt den Landesverbänden die Dan-Urkunden zur Verfügung?','Die DTU; die Kosten richten sich nach der FGO',['Der Weltverband WT','Der jeweilige Verein','Der Kukkiwon'],'PO Dritter Teil § 2 Nr. 4 a. Nachbestellungen von Urkunden und Chipkarten beantragt man beim BPR gegen Gebühr.',{re:[/dtu|deutsche taekwondo/]});
+h(8,3,VB,'Wie kommen Kup-Urkunden und Prüfungsmarken zu den Vereinen?','Die DTU stellt sie den LV kostenpflichtig zur Verfügung; die LV beliefern ihre Vereine und dürfen einen Aufschlag erheben',['Der Prüfer bringt sie mit','Die Vereine bestellen direkt bei der DTU','Der Prüfer druckt sie selbst aus'],'PO Dritter Teil § 2 Nr. 5 a.',{kw:[[/dtu/],[/landesverband|\blv\b/]],need:2});
+h(8,3,VB,'Wer zahlt die Aufwandsentschädigung der Prüfer bei Kup- und Vereins-Danprüfungen, bei Landes-Danprüfungen und bei Bundes-Danprüfungen?','Verein, LV, DTU (in dieser Reihenfolge)',['LV, DTU, Verein','DTU, DTU, LV','Verein, Verein, DTU'],'PO Dritter Teil § 2 Nr. 7.',{kw:[[/verein/],[/\blv\b|landesverband/],[/dtu/]],need:3});
+h(8,3,VB,'Welche Ehrendangrade erkennt die DTU an?','Die von der ETU und der WT verliehenen; Ehrendane anderer Organisationen sind unbeachtlich',['Alle Ehrendane weltweit','Nur die von der DTU selbst verliehenen','Die von Vereinen verliehenen'],'PO Dritter Teil § 1 Nr. 1 b: Die Verleihung ist in der EO (Ehrenordnung) geregelt.',{kw:[[/etu|europ/],[/\bwt\b|world/]],need:1});
+h(8,2,VB,'Wer darf Kupgrade in den DTU-Sportpass eintragen?','Der BPR, vom LV beauftragte Personen und Prüfer mit gültiger Prüferlizenz',['Jeder Trainer','Jeder Vereinsvorstand','Nur der Anwärter selbst'],'PO Dritter Teil § 2 Nr. 2 a.',{kw:[[/bpr/],[/pruef|pruf/],[/\blv\b|landesverband|beauftragt/]],need:2});
+h(9,3,VB,'Wer darf Poom- und Dangrade in den DTU-Sportpass eintragen?','Der BPR, vom LV beauftragte Personen, bei Vereins-Danprüfungen der Kommissionsvorsitzende bzw. der jeweilige Prüfer',['Jeder Vereinstrainer','Nur der Landesverbandsvorstand','Jeder Prüfer mit Lizenz C'],'PO Dritter Teil § 2 Nr. 2 b. Bei Danprüfungen werden keine Prüfungsmarken eingeklebt.',{kw:[[/bpr/],[/kommission|vorsitz/],[/\blv\b|landesverband|beauftragt/]],need:2});
+h(8,2,VB,'Wo werden erworbene Graduierungen zentral erfasst, und ab wann werden sie wirksam?','In der DTU-Verwaltungsdatenbank (DB); mit dem Eintrag, und zwar rückwirkend ab dem Prüfungstag',['Beim Kukkiwon; ab Ausstellung der Urkunde','Beim DOSB; nach 3 Wochen','Im Verein; ab Eintrag im Sportpass'],'PO Dritter Teil § 2 Nr. 1.',{re:[/datenbank|\bdb\b/]});
+h(9,3,VB,'Welche Anforderung gilt an den Kommissionsvorsitzenden und die Beisitzer bei Landes- und Bundes-Danprüfungen?','Vorsitzender mindestens den angestrebten Dangrad; Beisitzer mindestens den Dangrad, den der Prüfling zum Prüfungszeitpunkt innehat',['Alle Prüfer mindestens 5. Dan','Vorsitzender mindestens 1. Dan über dem Prüfling, Beisitzer gleichrangig','Beliebige Prüfer mit Lizenz A'],'PO Zweiter Teil § 1 Nr. 6 b.',{kw:[[/angestreb/],[/innehat|aktuell|zum zeitpunkt|besitzt/]],need:1});
+h(9,3,VB,'Wer kann bei Ausfall eines Kommissionsmitglieds (bis zum 3. Dan) einspringen?','Das für das Prüfungswesen zuständige Vorstandsmitglied des LV (unabhängig vom Dangrad); der BPR jederzeit; steht keiner zur Verfügung, fällt die Prüfung aus',['Jeder anwesende Prüfer mit Lizenz C','Der Trainer des Anwärters','Ein weiterer Anwärter'],'PO Zweiter Teil § 1 Nr. 6 c.',{kw:[[/vorstand|\blv\b|landesverband/],[/bpr/]],need:1});
+h(8,2,VB,'Dürfen DTU-Prüfungen im Ausland stattfinden?','Ja, bis zum 3. Dan, im europäischen Ausland und mit DTU-lizenzierten Prüfern',['Nein, nur in Deutschland','Ja, weltweit alle Grade','Ja, nur bis zum 1. Kup'],'PO Dritter Teil § 1 Nr. 4: bei Trainingsmaßnahmen; Abwicklung über die DTU-Datenbank.',{re:[/europ/]});
+h(8,3,VB,'Welche Fristen gelten für Kup-Prüfungen im Ausland?','Information und Genehmigung des LV spätestens 3 Monate vorher; Teilnehmer und Prüfer spätestens 14 Tage vorher melden',['Anzeige 4 Wochen vorher beim BPR','Keine Fristen','Anzeige 1 Jahr vorher'],'PO Dritter Teil § 1 Nr. 4. Bei Danprüfungen ist der BPR zuständig, und ein von ihm beauftragter Offizieller muss anwesend sein.',{kw:[[/3 monat|drei monat/],[/14 tage|vierzehn/]],need:1});
+h(9,3,VB,'Wer muss bei Dan-Prüfungen im Ausland anwesend sein?','Ein vom BPR beauftragter Offizieller',['Der DTU-Präsident','Ein Vertreter der WT','Der Landesverbandspräsident'],'PO Dritter Teil § 1 Nr. 4 d.',{re:[/bpr|offiziell/]});
+h(9,3,VB,'Wer entscheidet, ob Vereins-Danprüfungen zum 2. und 3. Dan/Poom angeboten werden?','Der jeweilige Landesverband für seinen Zuständigkeitsbereich',['Der DTU-Präsident','Der ausrichtende Verein','Der BPR'],'PO Dritter Teil § 1 Nr. 3. Die Entscheidung ist in geeigneter Form zu veröffentlichen.',{re:[/landesverband|\blv\b/]});
+h(8,3,VB,'Was gilt bei Verlust des DTU-Passes?','Prüfungsmarken müssen nicht nachgeklebt werden; die Eintragung erfolgt ausschließlich durch den LPR, wenn ein DB-Eintrag oder lückenloser Urkundennachweis vorliegt',['Alle Prüfungen müssen wiederholt werden','Der Verein trägt die Grade neu ein','Die Graduierung verfällt'],'PO Dritter Teil § 2 Nr. 9.',{re:[/lpr|landespruef|landesprüf|nicht nachge|datenbank/]});
+h(8,3,VB,'Wer kann Sonderregelungen zur Graduierung für Sportler des Bundeskaders treffen?','Das Präsidium (damit sie an internationalen Turnieren teilnehmen können)',['Der BPR allein','Der Landesverband','Der Prüfer'],'PO Dritter Teil § 1 Nr. 1 c. In anderen begründeten Einzelfällen entscheidet der BPR im Benehmen mit dem zuständigen DTU-Vizepräsidenten.',{re:[/praesidium|prasidium/]});
+h(8,3,VB,'Wer kann zeitlich befristete Ausnahmen von der Präsenzpflicht bei Prüfungen beschließen?','Das Präsidium',['Der Prüfer','Der BPR allein','Der Verein'],'PO Zweiter Teil § 2 Nr. 1 a: Grundsätzlich müssen Prüfer und Anwärter physisch anwesend sein.',{re:[/praesidium|prasidium/]});
+h(9,3,VB,'Welche Kleidung tragen Prüfer bei Danprüfungen laut PO einheitlich?','Blauer Blazer/Sakko, graue Hose, weißes Hemd, passende Krawatte, weiße Socken und weiße Hallenschuhe',['Dobok in Schwarz','Anzug in Schwarz mit schwarzer Krawatte','Freie Sportkleidung'],'Bei Kup-Prüfungen kann der Prüfer Zivil- oder Sportkleidung oder einen Dobok tragen (PO Zweiter Teil § 1 Nr. 3).',{kw:[[/blau|blazer|sakko/],[/grau/],[/weiss|weis/]],need:2});
+h(8,2,VB,'Was gilt für die Kleidung des Prüfers bei Kup-Prüfungen?','Zivil- oder Sportkleidung oder Dobok',['Immer Dobok','Immer Anzug','Blauer Blazer und graue Hose'],'PO Zweiter Teil § 1 Nr. 3 a.',{re:[/zivil|sport|dobok/]});
+h(8,2,VB,'Darf ein eingesetzter Prüfer bei derselben Prüfung auch Anwärter oder Betreuer sein?','Nein (Verbot der Mehrfachfunktion)',['Ja, als Betreuer','Ja, als Anwärter','Ja, wenn der BPR zustimmt'],'PO Zweiter Teil § 1 Nr. 4.',{re:[/nein|nicht|verbot/]});
+h(9,3,VB,'Innerhalb welcher Frist werden bei Vereins- und Landes-Danprüfungen neue Graduierungen in die DTU-DB eingetragen?','Innerhalb von 7 Kalendertagen',['Innerhalb von 24 Stunden','Innerhalb von 3 Wochen','Innerhalb von 3 Monaten'],'PO Zweiter Teil § 1 Nr. 6 h; der Kommissionsvorsitzende leitet die Prüfungslisten nach der Prüfung digital an LV bzw. LPR.',{re:[/\b7\b|sieben/]});
+h(9,3,VB,'Welchen Bonuswert hat die Bundes-Kampfrichter-Lizenz bei der Bonusregelung (Poom/Dan)?','0,8',['0,4','0,6','1,0'],'PO Zweiter Teil § 2 Nr. 8 g: Kampfrichter-Anwärter 0,4; Landes-Kampfrichter 0,6; Bundes-Kampfrichter 0,8; WT-Coach 1,0; WT-Kampfrichter 1,5.',{re:[/0[,.]8/]});
+h(9,3,VB,'Welchen Bonuswert hat eine WT-Kampfrichterlizenz?','1,5',['0,8','1,0','1,2'],'PO Zweiter Teil § 2 Nr. 8 g.',{re:[/1[,.]5/]});
+h(9,3,VB,'Welchen Bonuswert hat die Prüferlizenz (alle Stufen gleich bewertet)?','0,3',['0,2','0,5','1,0'],'PO Zweiter Teil § 2 Nr. 8 f/g.',{re:[/0[,.]3/]});
+h(9,3,VB,'Welchen Bonuswert hat die Trainer-B-Lizenz TKD (2. Lizenzstufe)?','1,0',['0,8','1,2','1,5'],'Trainer C = 0,8 (1.–5. Dan); Trainer B = 1,0; Trainer A = 1,2; Diplomtrainer = 1,5. Lizenzen, die als Zulassungsvoraussetzung dienen, zählen nicht für die Bonusregelung.',{re:[/1[,.]0|\b1\b/]});
+/* --- Formenlauf (Poomsae) --- */
+h(2,1,PS,'Mit welchem Kommando beginnt die Vorbereitung auf eine Form, und mit welcher Stellung startet man üblicherweise?','Junbi (Bereit) in der Bereitschaftsstellung Naranhi Junbi Seogi',['Sijak in der Reiterstellung','Geuman in der Kranichstellung','Baro in der Tigerstellung'],'Eine Form beginnt (nach Kyeongnye) in der Bereitschaftsstellung und endet mit Baro (Rückkehr in die Ausgangsstellung).',{re:[/junbi|bereit|naranhi/]});
+h(2,2,PS,'Mit welchem Kommando endet eine Form?','Baro (Zurück in die Ausgangsstellung)',['Sijak (Beginnen)','Charyeot (Achtung)','Swieo (Entspannen)'],'Nach Baro folgt die Verbeugung (Kyeongnye).',{re:[/baro/]});
+h(2,2,PS,'Wie ist das Diagramm (Laufbahn) der acht Taegeuk-Formen aufgebaut?','Drei parallele Linien, auf jeder erfolgt eine 180°-Drehung',['Zwei Linien mit je 90°-Drehung','Ein Kreuz aus vier Linien','Eine Linie ohne Drehung'],'Je nach Form wird die Drehung entweder mit Fuß-zurück („durchgezogene“ Linie) oder auf der Stelle („unterbrochene“ Linie) ausgeführt; daraus ergeben sich die Trigramme.',{kw:[[/drei|3/],[/180|umkehr|halbe|dreh/]],need:2});
+h(3,3,PS,'Was bedeutet bei den Taegeuk-Trigrammen eine „durchgezogene“ Linie in der Laufbahn?','Die Drehung wird ausgeführt, indem der vordere Fuß nach hinten gesetzt wird',['Die Drehung erfolgt auf der Stelle','Die Drehung erfolgt im Sprung','Die Drehung erfolgt rückwärts'],'Dreht man auf der Stelle (Drehpunkt), ist die Linie „unterbrochen“.',{re:[/fuss.*hinten|zurueck|zuruck|nach hinten/]});
+h(2,1,PS,'Welcher Tritt kommt in Taegeuk Il Jang vor?','Ap Chagi (Frontkick)',['Yeop Chagi (Seitkick)','Dollyeo Chagi (Halbkreistritt)','Dwit Chagi (Rückwärtstritt)'],'Taegeuk Il Jang (Geon, Himmel) kennt Gehstellung und Vorwärtsbeugestellung, Arae Makgi, Momtong Makgi, Eolgul Makgi, Momtong Jirugi und Ap Chagi.',{fz:['Ap Chagi','Frontkick'],re:[/ap ?chagi|front|vorw/]});
+h(2,2,PS,'Welche Techniken enthält Taegeuk Il Jang?','Arae Makgi, Momtong Makgi, Eolgul Makgi, Momtong Jirugi und Ap Chagi',['Sonnal Makgi, Palkup Chigi und Yeop Chagi','Gawi Makgi, Mureup Chigi und Twio Chagi','Dollyeo Chagi und Batangson Makgi'],'Taegeuk Il Jang ist die erste Form (7. Kup), Trigramm Geon (Himmel).',{kw:[[/arae|tief|unten/],[/momtong|mitte/],[/eolgul|hoch|kopf/],[/jirugi|fauststoss|stoss|faust/],[/ap ?chagi|front/]],need:3});
+h(3,2,PS,'Was bringt Taegeuk Ee Jang neu gegenüber Il Jang?','Fauststoß zum Kopf (Eolgul Jirugi), Übergang von Gehstellung in Vorwärtsbeugestellung und eine Tritt-Stoß-Kombination',['Handkantenhalsschlag und Speerhand','Ellbogenstöße und Seitwärtstritte','Sprungtritte und Scherenblock'],'Taegeuk Ee Jang (Tae, See): Drehungen Fuß zurück, Fuß zurück, auf der Stelle.',{kw:[[/eolgul|kopf|hoch/],[/jirugi|stoss|faust/],[/kombination|tritt/]],need:2});
+h(4,2,PS,'Welche Handkantentechnik zeichnet Taegeuk Sam Jang aus?','Handkanten-Halsschlag (Sonnal Mok Chigi) und Handkantenabwehr nach außen',['Speerhandstoß','Doppelter Handkantenblock am Anfang','Handkantenblock nach innen'],'Taegeuk Sam Jang (Ri, Feuer) beginnt mit Frontkick und Doppelstoß und schließt mit Tiefblock, Tritt und Stoß; es soll „mit Energie wie Feuer“ gelaufen werden.',{re:[/hals|mok|nacken|neck|handkante/]});
+h(4,2,PS,'Welche Technikfolge steht am Anfang von Taegeuk Sam Jang?','Ap Chagi (Frontkick) gefolgt von einem Doppelstoß',['Doppelter Handkantenblock','Arae Makgi mit Ap Seogi','Ellbogenstoß mit Seitwärtstritt'],'Siehe Kukkiwon-Standard (Taekwondo Textbook).',{re:[/ap ?chagi|front/]});
+h(5,2,PS,'Mit welcher Technik beginnt Taegeuk Sa Jang?','Mit einem doppelten Handkantenblock',['Mit Arae Makgi','Mit Ap Chagi','Mit Eolgul Jirugi'],'Taegeuk Sa Jang (Jin, Donner) bringt zudem Speerhandstoß (Pyeonsonkkeut Jirugi), Seitwärtstritt (Yeop Chagi) und den „Schwalbenform“-Schlag (Jebipum Mok Chigi).',{re:[/doppel.*hand|handkante/]});
+h(5,3,PS,'Wie heißt die Technik, bei der hohe Handkantenabwehr und Handkanten-Halsschlag gleichzeitig ausgeführt werden (Taegeuk Sa Jang)?','Jebipum Mok Chigi (Schwalbenform-Schlag)',['Gawi Makgi (Scherenblock)','Batangson Makgi (Handballenblock)','Keumgang Makgi (Diamantblock)'],'Jebipum = Schwalbenform, Mok = Hals, Chigi = Schlag.',{fz:['Jebipum Mok Chigi','Jebipum'],vs:['Gawi Makgi','Batangson Makgi','Keumgang Makgi']});
+h(5,3,PS,'Wie heißt der Speerhandstoß (Taegeuk Sa Jang)?','Pyeonsonkkeut Jirugi',['Sonnal Mok Chigi','Palkup Chigi','Momtong Jirugi'],'Pyeon Sonkkeut = flache Fingerspitzen (Speerhand).',{fz:['Pyeonsonkkeut Jirugi','Pyeonsonkkeut','Pyeon Sonkkeut Jirugi'],vs:['Sonnal Mok Chigi','Palkup Chigi','Momtong Jirugi']});
+h(6,2,PS,'Welche Technikgruppe prägt Taegeuk Oh Jang?','Ellbogentechniken (Palkup Chigi), dazu Seitwärtstritte mit gleichzeitigem Handschlag',['Sprungtritte','Scherenblöcke','Handkantenhalsschläge'],'Taegeuk Oh Jang (Seon, Wind): sanft, aber unnachgiebig wie der Wind; Drehungen: auf der Stelle, Fuß zurück, Fuß zurück.',{re:[/ellb|palkup|elbow/]});
+h(7,2,PS,'Welcher Tritt prägt Taegeuk Yuk Jang?','Dollyeo Chagi (Halbkreistritt)',['Ap Chagi','Naeryeo Chagi','Twio Chagi'],'Taegeuk Yuk Jang (Gam, Wasser) hat Halbkreistritt und Drehabwehr (Twist Block), Handflächenblöcke zum Schluss.',{fz:['Dollyeo Chagi','Halbkreistritt'],re:[/halbkreis|dollyeo|round/],vs:['Ap Chagi','Yeop Chagi','Dwit Chagi','Naeryeo Chagi']});
+h(7,3,PS,'Was ist an Taegeuk Yuk Jang besonders?','Es ist die einzige Taegeuk-Form mit Rückwärtsschritten (am Ende in Rückwärtsbeuge- und Vorwärtsbeugestellung)',['Sie enthält als einzige Form Sprungtritte','Sie besteht aus nur zwei Linien','Sie wird ohne Kampfschrei gelaufen'],'Nach Kukkiwon-Beschreibung; in der Mitte steht ein langsam ausgeführter Tiefblock auf acht Zählzeiten.',{re:[/rueckwaerts|ruckwarts|zurueck|zuruck/]});
+h(8,2,PS,'In welcher Stellung beginnt Taegeuk Chil Jang?','In der Tigerstellung (Beom Seogi)',['In der Reiterstellung','In der Kranichstellung','In der Kreuzstellung'],'Taegeuk Chil Jang (Gan, Berg): Drehungen auf der Stelle, auf der Stelle, Fuß zurück.',{fz:['Beom Seogi','Bom Seogi'],re:[/tiger|beom/]});
+h(8,3,PS,'Welche Techniken kommen in Taegeuk Chil Jang vor?','Scherenblock (Gawi Makgi), Handballenblock, Rückhandschlag, Kniestoß (Mureup Chigi), Tiefblock mit doppelter Handkante',['Nur Faust- und Fußstöße','Sprungtritte und Drehtritte','Ellbogenstöße mit Seitwärtstritt'],'Taegeuk Chil Jang ist die 7. Form (1. Kup).',{kw:[[/schere|gawi/],[/knie|mureup/],[/handball|batangson|palm/],[/handkante|sonnal/]],need:2});
+h(9,3,PS,'Welche Besonderheit hat der Sprungtritt in Taegeuk Pal Jang?','In einem einzigen Sprung wird zweimal getreten, einmal mit jedem Bein',['Er ist ein Drehsprungtritt nach hinten','Er wird als Sprung-Seitwärtstritt ausgeführt','Er wird nur mit dem Standbein ausgeführt'],'Taegeuk Pal Jang (Gon, Erde, 8. Form) enthält außerdem Tigerstellung, Kreuzstellung, Frontkick mit anschließendem Sprung-Frontkick und halben Bergblock.',{re:[/zweimal|2 ?x|jedes bein|beide beine|einem sprung/]});
+h(9,2,PS,'Welche Stellung kommt in der Mittellinie von Taegeuk Pal Jang vor?','Tigerstellung (Beom Seogi)',['Kranichstellung','Reiterstellung','Rückwärtsbeugestellung'],'Dort steht in der Tigerstellung ein doppelter Handkantenblock nach vorn.',{re:[/tiger|beom/]});
+h(10,3,PS,'Welche Stellung ist typisch für Poomsae Koryeo und Keumgang?','Hakdari Seogi (Kranichstellung, Einbeinstand)',['Juchum Seogi (Reiterstellung)','Dwit Kubi (Rückwärtsbeuge)','Moa Seogi (geschlossene Stellung)'],'Beide Formen enthalten die Kranichstellung; Keumgang außerdem den Diamantblock (Keumgang Makgi) und den Bergblock (San Makgi).',{fz:['Hakdari Seogi','Kranichstellung'],re:[/kranich|hakdari|einbein/],vs:['Juchum Seogi','Dwit Kubi','Moa Seogi','Beom Seogi']});
+h(10,3,PS,'Welches Schriftzeichen bildet das Diagramm der Poomsae Koryeo?','士 (Gelehrter)',['山 (Berg)','十 (Zehn)','一 (Eins)'],'Koryeo: 士 (Seonbi, Gelehrter); Keumgang: 山 (Berg); Pyeongwon: 一 (Eins, Ebene); Sipjin: 十 (Zehn).');
+h(11,3,PS,'Welches Schriftzeichen bildet das Diagramm der Poomsae Keumgang?','山 (Berg)',['士 (Gelehrter)','十 (Zehn)','一 (Eins)'],'Keumgang: 山 (Berg).');
+h(12,3,PS,'Welches Schriftzeichen bildet das Diagramm der Poomsae Pyeongwon?','一 (Eins; Ebene)',['士 (Gelehrter)','山 (Berg)','十 (Zehn)'],'Pyeongwon: 一, die gerade Linie der weiten Ebene.');
+h(13,3,PS,'Welches Schriftzeichen bildet das Diagramm der Poomsae Sipjin?','十 (Zehn)',['士 (Gelehrter)','山 (Berg)','一 (Eins)'],'Sipjin: 十, das Dezimalsystem; Zehn als Zeichen für Vollkommenheit.');
+/* generierte Fragen werden unten ergänzt */
+
+/* ===================== FRAGEN BAUEN ===================== */
+const POOL=[];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+H.forEach((q,i)=>{q.id='h'+i;q.fam='h'+i;POOL.push(q)});
+const add=(o)=>POOL.push(o);
+
+/* Vokabelfragen */
+V.forEach(e=>{
+  const sameCat=V.filter(x=>x.c===e.c&&x.id!==e.id);
+  const others=V.filter(x=>x.id!==e.id);
+  const distDe=shuffle(sameCat).slice(0,4).map(x=>x.de);
+  while(distDe.length<4){const x=shuffle(others)[0];if(x&&!distDe.includes(x.de)&&x.de!==e.de)distDe.push(x.de)}
+  const distK=shuffle(sameCat).slice(0,4).map(x=>x.k);
+  while(distK.length<4){const x=shuffle(others)[0];if(x&&!distK.includes(x.k)&&x.k!==e.k)distK.push(x.k)}
+  const cat=e.c.replace(/ \(.*\)/,'');
+  const exp=`${e.k} = ${e.de}${e.a&&e.a.length&&e.a[0]!==e.k?` (auch geschrieben: ${e.a.slice(0,2).join(', ')})`:''}. Rubrik: ${e.c}.`;
+  if(e.num){
+    add({id:'vn'+e.id,fam:'v'+e.id,g:e.g,d:e.g>0?2:1,c:'Begriffe & Kommandos',q:`Welche Zahl bedeutet „${e.k}“ im ${e.c.includes('sino')?'sino-koreanischen':'rein koreanischen'} Zählsystem?`,a:e.de,w:shuffle(V.filter(x=>x.c===e.c&&x.id!==e.id).map(x=>x.de)).slice(0,4),x:exp,re:[e.d]});
+    add({id:'vk'+e.id,fam:'v'+e.id,g:e.g,d:2,c:'Begriffe & Kommandos',q:`Wie heißt die Zahl ${e.de} im ${e.c.includes('sino')?'sino-koreanischen (Taegeuk-Namen, Gürtelgrade)':'rein koreanischen (Zählen von Techniken)'} Zählsystem auf Koreanisch?`,a:e.k,w:distK,x:exp,fz:[e.k,...e.a],vs:others.filter(x=>x.num&&x.c===e.c).flatMap(x=>[x.k,...x.a])});
+  }else{
+    add({id:'vd'+e.id,fam:'v'+e.id,g:e.g,d:e.g<=1?1:2,c:'Begriffe & Kommandos',q:`Was bedeutet „${e.k}“ (${cat})?`,a:e.de,w:distDe,x:exp,re:[e.d]});
+    add({id:'vk'+e.id,fam:'v'+e.id,g:e.g,d:e.g<=1?2:3,c:'Begriffe & Kommandos',q:`Wie lautet der koreanische Begriff für „${e.de}“?`,a:e.k,w:distK,x:exp,fz:[e.k,...e.a],vs:others.flatMap(x=>[x.k,...x.a])});
+  }
+});
+
+/* Programm-Fragen aus der PO */
+const KUP_FORM=[null,null,0,1,2,3,4,5,6];  // Index im Grad -> Taegeuk-Index
+GR.forEach((gr,i)=>{
+  if(i>=0&&i<=8){
+    const others=GR.slice(0,9).filter((_,j)=>j!==i);
+    add({id:'pb'+i,fam:'pb'+i,g:i,d:i<5?1:2,c:'Prüfungsordnung',q:`Welcher Gürtel gehört zum ${gr.n}?`,a:gr.belt,w:shuffle(others).slice(0,4).map(x=>x.belt),x:`PO § 1 Nr. 5: ${gr.n} = ${gr.belt}.`});
+    if(i>0)add({id:'pp'+i,fam:'pp'+i,g:i,d:2,c:'Prüfungsordnung',q:`Welche Mindest-Vorbereitungszeit gilt für die Prüfung zum ${gr.n}?`,a:gr.prep,w:shuffle([...new Set(GR.filter((_,j)=>j!==i).map(x=>x.prep))].filter(p=>p!==gr.prep)).slice(0,4),x:`PO § 2, Programm ${gr.n}: ${gr.prep}.`,re:[new RegExp(gr.prep.match(/(\d+) (Monate|Jahre?)/)[1]+'\\s*'+(gr.prep.includes('Monate')?'monat':'jahr'))]});
+  }
+});
+/* Formenzuordnung Kup */
+for(let i=2;i<=8;i++){
+  const t=TAE[KUP_FORM[i]];
+  const othersT=TAE.filter(x=>x!==t);
+  add({id:'pf'+i,fam:'pf'+i,g:i,d:2,c:'Poomsae',q:`Welche Taegeuk-Form gehört im Pflichtprogramm zur Prüfung zum ${GR[i].n} (Technik)?`,a:`${t.n}. Form – ${t.k}`,w:shuffle(othersT).slice(0,4).map(x=>`${x.n}. Form – ${x.k}`),x:`PO § 2: ${GR[i].n} verlangt die ${t.n}. Form (${t.k}).`,re:[new RegExp('\\b'+t.n+'\\b|'+t.k.split(' ')[1].toLowerCase()+' ?jang')]});
+  add({id:'pk'+i,fam:'pf'+i,g:i,d:2,c:'Poomsae',q:`Für welche Graduierung ist ${t.k} (${t.n}. Form) die neue Pflichtform?`,a:GR[i].n,w:shuffle(GR.slice(2,9).filter((_,j)=>j+2!==i)).slice(0,4).map(x=>x.n),x:`${t.k} ist die ${t.n}. Form: Pflichtform zur Prüfung zum ${GR[i].n}.`,re:[new RegExp('\\b'+GR[i].n.split('.')[0]+'\\.?\\s*kup')]});
+}
+/* Taegeuk-Details */
+TAE.forEach((t,i)=>{
+  const g=i<7?KUP_FORM.indexOf(i):9;
+  add({id:'tn'+i,fam:'tn'+i,g,d:2,c:'Poomsae',q:`Wie heißt die ${t.n}. Taegeuk-Form auf Koreanisch?`,a:t.k,w:shuffle(TAE.filter(x=>x!==t)).slice(0,4).map(x=>x.k),x:`${t.n}. Form = ${t.k} (Jang = Kapitel/Abschnitt). Trigramm: ${t.tri} (${t.de}).`,fz:[t.k,t.k.replace('Taegeuk ',''),'Taeguk '+t.k.split(' ').slice(1).join(' ')],vs:TAE.filter(x=>x!==t).flatMap(x=>[x.k,x.k.replace('Taegeuk ','')])});
+  add({id:'tt'+i,fam:'tt'+i,g,d:3,c:'Poomsae',q:`Welches Trigramm (Naturelement) steht für ${t.k}?`,a:`${t.tri} – ${t.de}`,w:shuffle(TAE.filter(x=>x!==t)).slice(0,4).map(x=>`${x.tri} – ${x.de}`),x:`${t.k}: ${t.tri} = ${t.de}. Reihenfolge: Geon (Himmel), Tae (See), Ri (Feuer), Jin (Donner), Seon (Wind), Gam (Wasser), Gan (Berg), Gon (Erde).`,re:[new RegExp(t.tri.toLowerCase()+'|'+t.de.split(' ')[0].toLowerCase().replace('ö','o'))]});
+  add({id:'tm'+i,fam:'tm'+i,g,d:3,c:'Poomsae',q:`Wie viele Bewegungen hat ${t.k} (Kukkiwon-Standard)?`,a:String(t.mv),w:[...new Set(TAE.map(x=>String(x.mv)))].filter(x=>x!==String(t.mv)),x:`${t.k} hat ${t.mv} Bewegungen. (1: 18, 2: 18, 3: 20, 4: 20, 5: 20, 6: 19, 7: 25, 8: 27)`,re:[new RegExp('\\b'+t.mv+'\\b')]});
+});
+/* Höhere Poomsae */
+POO.forEach((p,i)=>{
+  const g=9+Math.min(8,[0,1,2,3,5,5,6,7,8][i]+1);
+  const gi=Math.min(17,[10,11,12,12,13,14,15,16,17][i]);
+  const others=POO.filter(x=>x!==p);
+  add({id:'ph'+i,fam:'ph'+i,g:gi,d:3,c:'Poomsae',q:`Welche Bedeutung hat die Poomsae ${p.k}?`,a:p.de,w:shuffle(others).slice(0,4).map(x=>x.de),x:`${p.k}: ${p.de}. In der PO verlangt für den ${p.dan}.`,re:[p.re]});
+  add({id:'pd'+i,fam:'pd'+i,g:gi,d:3,c:'Poomsae',q:`Zu welchem Dan wird ${p.k} als Pflichtform verlangt?`,a:p.dan,w:shuffle(others).slice(0,4).map(x=>x.dan).filter(d=>d!==p.dan),x:`PO § 2: ${p.k} = ${p.dan}. Folge: 2. Dan Koryeo, 3. Dan Keumgang, 4. Dan Taebaek + Pyeongwon, 5. Dan Pyeongwon + Sipjin, 6. Dan Sipjin + Jitae, 7. Dan Jitae + Cheonkwon, 8. Dan Cheonkwon + Hansu, 9. Dan Hansu + Ilyeo.`,re:[new RegExp(p.dan.split('.')[0]+'\\.?\\s*dan')]});
+  add({id:'pm'+i,fam:'pm'+i,g:gi,d:3,c:'Poomsae',q:`Wie viele Bewegungen hat Poomsae ${p.k} (Kukkiwon-Standard)?`,a:String(p.mv),w:[...new Set(POO.map(x=>String(x.mv)))].filter(x=>x!==String(p.mv)),x:`${p.k} hat ${p.mv} Bewegungen (Koryeo 30, Keumgang 27, Taebaek 26, Pyeongwon 25, Sipjin 29, Jitae 28, Cheonkwon 29, Hansu 27, Ilyeo 25).`,re:[new RegExp('\\b'+p.mv+'\\b')]});
+});
+/* Theorie je Grad */
+const THEO=[[1,'Wettkampfregeln nach WOZ oder WOP'],[3,'Notwehrrecht (sinngemäß)'],[4,'Geistige Hintergründe des Taekwondo'],[5,'Kenntnis der vitalen Körperpunkte'],[6,'Beschreibung und Erklärung der Trainingsinhalte'],[7,'Technikprinzipien'],[8,'Organisation/Aufbau der DTU und des zuständigen Landesverbands + Grundkenntnisse zur Trainingslehre']];
+THEO.forEach(([g,t])=>add({id:'th'+g,fam:'th'+g,g,d:2,c:'Theorie & Geist',q:`Welches Theorie-Thema kommt zur Prüfung zum ${GR[g].n} neu hinzu?`,a:t,w:shuffle(THEO.filter(x=>x[0]!==g)).slice(0,4).map(x=>x[1]),x:`PO § 2, ${GR[g].n}: Theorie = Bisherige Themen + ${t}.`}));
+/* Bruchtest je Grad */
+const BRG=[[5,'1 Technik nach eigener Wahl'],[6,'2 verschiedene Einzeltechniken nach eigener Wahl'],[9,'3 verschiedene Techniken, darunter eine 2er-Kombination'],[10,'4 verschiedene Techniken; 2er-Kombination und eine Sprungtechnik'],[11,'5 verschiedene Techniken; 3er-Kombination und 2 verschiedene Sprungtechniken']];
+BRG.forEach(([g,t])=>add({id:'br'+g,fam:'br'+g,g,d:g>=9?3:2,c:'Bruchtest',q:`Was verlangt der Bruchtest zur Prüfung zum ${GR[g].n}?`,a:t,w:shuffle(BRG.filter(x=>x[0]!==g)).slice(0,4).map(x=>x[1]),x:`PO § 2, ${GR[g].n}: ${t}. (2. und 1. Kup: ebenfalls 2 verschiedene Einzeltechniken.)`}));
+/* Vorbereitungszeit Dan */
+[[9,'1 Jahr'],[11,'2 Jahre'],[12,'3 Jahre'],[13,'4 Jahre'],[14,'5 Jahre'],[15,'6 Jahre'],[16,'7 Jahre'],[17,'8 Jahre']].forEach(([g,t])=>add({id:'pv'+g,fam:'pv'+g,g,d:3,c:'Prüfungsordnung',q:`Wie lange beträgt die Mindest-Vorbereitungszeit seit der letzten Graduierung für den ${GR[g].n}?`,a:t,w:['1 Jahr','2 Jahre','3 Jahre','4 Jahre','5 Jahre','6 Jahre','7 Jahre','8 Jahre'].filter(x=>x!==t).slice(0,5),x:`PO § 2: 1./2. Dan 1 Jahr, 3. Dan 2 Jahre, 4. Dan 3, 5. Dan 4, 6. Dan 5, 7. Dan 6, 8. Dan 7, 9. Dan 8 Jahre.`,re:[new RegExp('\\b'+t.split(' ')[0]+'\\b|'+['','ein','zwei','drei','vier','funf','sechs','sieben','acht'][+t.split(' ')[0]])]}));
+/* Abkürzungen aus der PO */
+const ABB=[['DTU','Deutsche Taekwondo Union',/deutsche taekwondo|taekwondo union/],['ETU','Europäische Taekwondo Union',/europ/],['WT','World Taekwondo',/world/],['BPR','Bundesreferent für das Prüfungswesen',/bundesref|pruefungswesen|prufungswesen/],['LPR','Landesprüfungsreferent (Landesreferent für das Prüfungswesen)',/landespruef|landesprüf|landesref|pruefungsref|prufungsref/],['DB','Verwaltungsdatenbank',/datenbank/],['EO','Ehrenordnung',/ehren/],['FGO','Finanz- und Gebührenordnung',/finanz|gebuehr|gebuhr/],['LV','Landesverband',/landesverband/],['MV','Mitgliederversammlung',/mitglieder/],['PassO','Passordnung',/pass/],['PL','Prüferlizenz',/pruefer.?lizenz|prufer.?lizenz|pruefer|prufer/],['PO','Prüfungsordnung für Kup-, Poom- und Dangrade',/pruefungsordnung|prufungsordnung/],['SV','Selbstverteidigung',/selbstverteidig/],['WOZ','Wettkampfordnung für Zweikampf',/zweikampf/],['WOP','Wettkampfordnung für Poomsae-Technik',/poomsae|technik/]];
+ABB.forEach(([k,de,re],i)=>{
+  const others=ABB.filter(x=>x[0]!==k);
+  add({id:'ab'+i,fam:'ab'+i,g:8,d:2,c:VB,q:`Wofür steht die Abkürzung „${k}“ in der Prüfungsordnung?`,a:de,w:shuffle(others).slice(0,4).map(x=>x[1]),x:`${k} = ${de}.`,re:[re]});
+  add({id:'ak'+i,fam:'ab'+i,g:8,d:2,c:VB,q:`Welche Abkürzung steht für „${de}“?`,a:k,w:shuffle(others).slice(0,4).map(x=>x[0]),x:`${k} = ${de}.`,re:[new RegExp('^\\s*'+k.toLowerCase()+'\\s*$')]});
+});
+/* Laufbahn der Taegeuk-Formen (Drehungen) */
+const PAT={Il:'SSS',Ee:'SSB',Sam:'SBS',Sa:'SBB',Oh:'BSS',Yuk:'BSB',Chil:'BBS',Pal:'BBB'};
+const patTxt=p=>[...p].map(c=>c==='S'?'Fuß zurück':'auf der Stelle').join(' – ');
+TAE.forEach((t,i)=>{
+  const key=Object.keys(PAT)[i],p=PAT[key];
+  const g=i<7?KUP_FORM.indexOf(i):9;
+  add({id:'tp'+i,fam:'tp'+i,g,d:3,c:'Poomsae',q:`Wie werden bei ${t.k} die drei 180°-Drehungen (Linie 1, 2, 3) ausgeführt?`,a:patTxt(p),w:shuffle(Object.values(PAT).filter(x=>x!==p)).slice(0,4).map(patTxt),x:`${t.k} (${t.tri}, ${t.de}): ${patTxt(p)}. „Fuß zurück“ ergibt eine durchgezogene, „auf der Stelle“ eine unterbrochene Trigramm-Linie. Gelesen von unten nach oben ist das das Trigramm ${t.tri}.`});
+});
+/* Formen nach Merkmal */
+const FEAT=[['Doppelter Handkantenblock am Anfang',5,'Taegeuk Sa Jang'],['Ellbogentechniken',6,'Taegeuk Oh Jang'],['Handkanten-Halsschlag',4,'Taegeuk Sam Jang'],['Fauststoß zum Kopf als Neuheit',3,'Taegeuk Ee Jang'],['Halbkreistritt und Rückwärtsschritte',7,'Taegeuk Yuk Jang'],['Beginn in der Tigerstellung',8,'Taegeuk Chil Jang'],['Sprungtritt mit zwei Tritten in einem Sprung',9,'Taegeuk Pal Jang']];
+FEAT.forEach(([f,g,k],i)=>add({id:'fe'+i,fam:'fe'+i,g,d:3,c:'Poomsae',q:`Welche Form zeichnet sich durch folgendes Merkmal aus: ${f}?`,a:k,w:shuffle(FEAT.filter(x=>x[2]!==k)).slice(0,4).map(x=>x[2]),x:`${k}: ${f}.`,fz:[k,k.replace('Taegeuk ','')],vs:FEAT.filter(x=>x[2]!==k).flatMap(x=>[x[2],x[2].replace('Taegeuk ','')])}));
+POOL.forEach(q=>{q.w=(q.w||[]).filter(x=>x!==q.a)});
+
+/* ===================== AUSWERTUNG ===================== */
+const strip=s=>String(s).toLowerCase().replace(/ß/g,'ss').normalize('NFD').replace(/[̀-ͯ]/g,'');
+const fold=s=>strip(s).replace(/[^a-z]/g,'').replace(/ch/g,'j').replace(/sh/g,'s').replace(/eo/g,'o').replace(/eu/g,'u').replace(/oo/g,'u').replace(/ae/g,'e').replace(/ee/g,'i').replace(/yo/g,'o').replace(/ye/g,'e').replace(/g/g,'k').replace(/d/g,'t').replace(/b/g,'p').replace(/h/g,'').replace(/(.)\1+/g,'$1');
+function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let p=Array.from({length:n+1},(_,i)=>i);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
+const tol=l=>l<=4?0:l<=8?1:2;
+function grade(q,raw,choice){
+  if(q.mode==='mc')return choice===q.correctIdx?{s:1}:{s:0};
+  const t=strip(raw).trim();
+  if(!t)return {s:0};
+  if(q.fz){
+    const inp=fold(raw);
+    const targets=q.fz.map(fold).filter(Boolean);
+    let dT=Math.min(...targets.map(x=>lev(inp,x)));
+    const inc=targets.some(x=>x.length>=5&&inp.includes(x));
+    if(inc)dT=0;
+    const tl=Math.max(...targets.map(x=>x.length));
+    const others=(q.vs||[]).map(fold).filter(Boolean);
+    const dO=others.length?Math.min(...others.map(x=>lev(inp,x))):99;
+    const okOther=!others.some(x=>x.length>=5&&x.length>tl&&inp.includes(x));
+    const tl2=tol(Math.min(...targets.map(x=>x.length)));
+    return (dT<=tl2&&dT<dO&&okOther)?{s:1}:{s:0};
+  }
+  if(q.kw){
+    const hits=q.kw.filter(g=>g.some(r=>r.test(t))).length;
+    return {s:Math.min(1,hits/(q.need||q.kw.length)),hits,need:q.need||q.kw.length};
+  }
+  if(q.re)return {s:q.re.some(r=>r.test(t))?1:0};
+  return {s:0};
+}
+const label=(s,mc)=>s>=1?['Sehr gut','good','Ja']:s>=.6?['Bestanden','good','Ja']:s>=.3?['Fehlerhaft','mid','Nein']:['Nicht bestanden','bad','Nein'];
+const note=p=>p>=92?1:p>=81?2:p>=67?3:p>=50?4:p>=30?5:6;
+const noteTxt=n=>['','sehr gut','gut','befriedigend','ausreichend','mangelhaft','ungenügend'][n];
+
+/* ===================== ZUSTAND & UI ===================== */
+const $=s=>document.querySelector(s);
+const app=$('#app');
+const st={screen:'setup',grade:4,diff:1,count:10,qs:[],i:0,res:[],answered:false,sel:-1};
+const DIFF=[{n:'Leicht',d:'Antworten auswählen, Grundlagen'},{n:'Mittel',d:'Teils frei antworten, Vorprogramm'},{n:'Schwer',d:'Freie Antworten, Details der PO'}];
+try{const s=JSON.parse(localStorage.getItem('tkd-setup')||'{}');if(s.grade>=0&&s.grade<18)st.grade=s.grade;if(s.diff>=0&&s.diff<3)st.diff=s.diff;if([10,15,20].includes(s.count))st.count=s.count}catch(e){}
+function saveSetup(){try{localStorage.setItem('tkd-setup',JSON.stringify({grade:st.grade,diff:st.diff,count:st.count}))}catch(e){}}
+function hist(){try{return JSON.parse(localStorage.getItem('tkd-hist')||'[]')}catch(e){return[]}}
+function pushHist(r){try{const h=hist();h.unshift(r);localStorage.setItem('tkd-hist',JSON.stringify(h.slice(0,8)))}catch(e){}}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function swatch(g){const c=GR[g].c;return `<span class="sw" style="background:${c[0]}">${c[1]?`<i style="background:${c[1]}"></i>`:''}</span>`}
+
+function buildQuiz(){
+  const W=[[1,.4,.05],[.3,1,.5],[.05,.5,1]][st.diff];
+  const sel=st.grade;
+  const pool=POOL.filter(q=>q.g<=sel&&!(st.diff===0&&q.d===3&&q.g<sel-1&&false));
+  const cand=pool.map(q=>({q,w:W[q.d-1]*(q.g===sel?2.4:q.g===sel-1?1.5:q.g>=sel-3?1.1:.7)}));
+  const out=[],fams=new Set(),cats={};
+  let tries=0;
+  while(out.length<st.count&&cand.length&&tries++<3000){
+    const tot=cand.reduce((a,c)=>a+c.w,0);let r=Math.random()*tot,k=0;
+    for(;k<cand.length;k++){r-=cand[k].w;if(r<=0)break}
+    k=Math.min(k,cand.length-1);
+    const q=cand.splice(k,1)[0].q;
+    if(fams.has(q.fam))continue;
+    if((cats[q.c]||0)>=Math.ceil(st.count*.45))continue;
+    fams.add(q.fam);cats[q.c]=(cats[q.c]||0)+1;out.push(q);
+  }
+  return out.map(q=>{
+    const canText=!!(q.re||q.fz||q.kw);
+    let mode='mc';
+    if(canText){ if(st.diff===2)mode='text'; else if(st.diff===1&&q.d>=2&&Math.random()<.5)mode='text'; }
+    const o=Object.assign({},q,{mode});
+    if(mode==='mc'){
+      const n=st.diff===2?5:4;
+      const opts=shuffle([q.a,...shuffle(q.w).slice(0,n-1)]);
+      o.opts=opts;o.correctIdx=opts.indexOf(q.a);
+    }
+    return o;
+  });
+}
+
+function renderSetup(){
+  const g=GR[st.grade];
+  const prog=[['Vorbereitungszeit',g.prep],g.zul&&['Zulassung',g.zul],g.vor&&['Vorprogramm',g.vor],['Technik',g.tech],['Zweikampf',g.zk],['Bruchtest',g.bruch],['Theorie',g.theo],['Wahlpflicht',g.wahl]].filter(Boolean);
+  const pool=POOL.filter(q=>q.g<=st.grade).length;
+  app.innerHTML=`
+  <div class="card examiner">
+    <div class="cmd" lang="ko">Charyeot! Kyeongnye!</div>
+    <p style="margin:0">Willkommen auf dem Dojang-Parkett, Prüfling. Ich bin dein Prüfer. Ich stelle dir immer nur eine Frage, warte auf deine Antwort, korrigiere mit den koreanischen Fachbegriffen und bewerte jede Antwort. Wähle zuerst deine Prüfung und den Schwierigkeitsgrad.</p>
+  </div>
+  <section class="card sec" aria-labelledby="hg">
+    <h2 id="hg" class="label">1 · Gürtelgrad</h2>
+    ${GROUPS.map(([t,a,b])=>`<div class="sec"><div class="label" style="font-weight:500">${t}</div><div class="belts">${GR.slice(a,b+1).map((x,i)=>`<button type="button" class="belt" data-g="${a+i}" aria-pressed="${st.grade===a+i}">${swatch(a+i)}<b>${x.n}</b></button>`).join('')}</div></div>`).join('')}
+    <details id="prog"><summary>Prüfungsprogramm zum ${g.n} (PO 2024)</summary>
+      <dl class="prog">${prog.map(([a,b])=>`<dt>${a}</dt><dd>${esc(b)}</dd>`).join('')}</dl></details>
+  </section>
+  <section class="card sec" aria-labelledby="hd">
+    <h2 id="hd" class="label">2 · Schwierigkeit</h2>
+    <div class="seg">${DIFF.map((d,i)=>`<button type="button" data-d="${i}" aria-pressed="${st.diff===i}"><b>${d.n}</b><small>${d.d}</small></button>`).join('')}</div>
+    <h2 class="label" style="margin-top:6px">3 · Anzahl Fragen</h2>
+    <div class="seg" style="grid-template-columns:repeat(3,1fr)">${[10,15,20].map(n=>`<button type="button" data-c="${n}" aria-pressed="${st.count===n}"><b>${n} Fragen</b></button>`).join('')}</div>
+  </section>
+  <div class="row sp"><span class="hist">${pool} Fragen im Katalog bis ${g.n}</span><button class="btn" id="start" type="button">Prüfung beginnen</button></div>
+  ${(()=>{const h=hist();return h.length?`<div class="card"><div class="label" style="margin-bottom:8px">Letzte Prüfungen (nur in diesem Browser)</div>${h.map(r=>`<div class="hist">${esc(r.date)} · ${esc(r.grade)} · ${esc(r.diff)} · ${r.pct} % · Note ${r.note} · ${r.pass?'bestanden':'nicht bestanden'}</div>`).join('')}</div>`:''})()}`;
+  app.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{st.grade=+b.dataset.g;saveSetup();renderSetup()});
+  app.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{st.diff=+b.dataset.d;saveSetup();renderSetup()});
+  app.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{st.count=+b.dataset.c;saveSetup();renderSetup()});
+  $('#start').onclick=start;
+}
+function start(){
+  st.qs=buildQuiz();st.i=0;st.res=[];st.screen='exam';st.answered=false;st.sel=-1;renderExam();window.scrollTo(0,0);
+}
+function renderExam(){
+  const q=st.qs[st.i],n=st.qs.length;
+  const mc=q.mode==='mc';
+  app.innerHTML=`
+  <div class="sec">
+    <div class="row sp"><span class="label">${GR[st.grade].n} · ${DIFF[st.diff].n}</span><button class="btn ghost" id="quit" type="button" style="padding:6px 12px;font-size:.85rem">Abbrechen</button></div>
+    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${st.i}"><div style="width:${st.i/n*100}%"></div></div>
+  </div>
+  <div class="card sec" id="qcard">
+    <div class="qhead"><span>Frage ${st.i+1} von ${n}</span><span>${esc(q.c)}</span></div>
+    <p class="q" id="qtext">${esc(q.q)}</p>
+    ${mc?`<div class="opts" role="radiogroup" aria-labelledby="qtext">${q.opts.map((o,i)=>`<button type="button" class="opt" role="radio" aria-checked="false" data-i="${i}"><span class="k">${i+1}</span><span>${esc(o)}</span></button>`).join('')}</div>`
+        :`<label class="label" for="ans">Deine Antwort</label><textarea id="ans" rows="3" placeholder="${q.fz?'Koreanischen Begriff eintippen':'Antwort in eigenen Worten'}" autocomplete="off" spellcheck="false"></textarea>`}
+    <div class="row sp"><button class="btn ghost" id="skip" type="button">Weiß ich nicht</button><button class="btn" id="go" type="button" ${mc?'disabled':''}>Antworten</button></div>
+    <div id="fb" aria-live="polite"></div>
+  </div>`;
+  $('#quit').onclick=()=>{st.screen='setup';renderSetup()};
+  if(mc){
+    app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{if(st.answered)return;st.sel=+b.dataset.i;app.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-checked',x===b));$('#go').disabled=false});
+  }else{const a=$('#ans');a.focus();a.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submit()}}}
+  $('#go').onclick=submit;$('#skip').onclick=()=>submit(true);
+}
+function submit(skip){
+  if(st.answered)return;
+  const q=st.qs[st.i];
+  const raw=q.mode==='text'?($('#ans').value):'';
+  if(q.mode==='mc'&&st.sel<0&&skip!==true)return;
+  st.answered=true;
+  const r=skip===true?{s:0}:grade(q,raw,st.sel);
+  const [lab,cls,jn]=label(r.s);
+  const rec={q,s:r.s,lab,jn,mine:skip===true?'(keine Antwort)':q.mode==='mc'?q.opts[st.sel]:raw.trim()};
+  st.res[st.i]=rec;
+  if(q.mode==='mc')app.querySelectorAll('.opt').forEach((b,i)=>{b.disabled=true;if(i===q.correctIdx)b.classList.add('ok');else if(i===st.sel)b.classList.add('no')});
+  else{$('#ans').disabled=true}
+  $('#go').hidden=true;$('#skip').hidden=true;
+  const last=st.i===st.qs.length-1;
+  const partial=q.kw&&r.s>0&&r.s<1?`<p>${r.hits} von ${r.need} geforderten Punkten genannt.</p>`:'';
+  const ok=r.s>=1;
+  const comment=ok?'Richtig.':r.s>=.6?'Im Kern richtig, aber nicht vollständig.':r.s>0?'Teilweise richtig.':'Das war nicht korrekt.';
+  const showAns=!ok;
+  $('#fb').innerHTML=`<div class="fb ${cls}"><div class="row sp"><span class="chip">${lab}</span><span class="label">Wertung: ${jn}</span></div>
+    <p>${comment}</p>${partial}
+    ${showAns?`<p class="ans">Richtige Antwort: ${esc(q.a)}</p>`:''}
+    <p>${esc(q.x||'')}</p>
+    <div class="row sp">${(q.mode==='text'&&!ok&&!skip)?`<button class="btn ghost" id="ovr" type="button">Meine Antwort war richtig</button>`:'<span></span>'}<button class="btn" id="next" type="button">${last?'Ergebnis anzeigen':'Nächste Frage'}</button></div></div>`;
+  const nx=$('#next');nx.focus();nx.onclick=next;
+  const o=$('#ovr');if(o)o.onclick=()=>{rec.s=1;rec.lab='Sehr gut (selbst korrigiert)';rec.jn='Ja';rec.self=true;o.textContent='Als richtig gewertet';o.disabled=true;const f=$('.fb');f.className='fb good';f.querySelector('.chip').textContent='Sehr gut';f.querySelector('.label').textContent='Wertung: Ja (selbst korrigiert)'};
+  $('#qcard').scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function next(){
+  if(st.i<st.qs.length-1){st.i++;st.answered=false;st.sel=-1;renderExam();window.scrollTo(0,0)}else finish();
+}
+function finish(){
+  st.screen='result';
+  const n=st.res.length;
+  const avg=st.res.reduce((a,r)=>a+r.s,0)/n;
+  const pct=Math.round(avg*100);
+  const ja=st.res.filter(r=>r.jn==='Ja').length;
+  const pass=ja>n/2;
+  const nt=note(pct);
+  const cats={};st.res.forEach(r=>{const c=r.q.c;(cats[c]=cats[c]||{s:0,n:0});cats[c].s+=r.s;cats[c].n++});
+  pushHist({date:new Date().toLocaleDateString('de-DE'),grade:GR[st.grade].n,diff:DIFF[st.diff].n,pct,note:nt,pass});
+  const wrong=st.res.filter(r=>r.s<1);
+  app.innerHTML=`
+  <div class="card sec">
+    <div class="res-top"><div><div class="label">Ergebnis · ${GR[st.grade].n} · ${DIFF[st.diff].n}</div><div class="big">Note ${nt} <span style="font-size:1.1rem;font-weight:600;color:var(--muted)">(${noteTxt(nt)})</span></div></div>
+      <div><div class="verdict ${pass?'good':'bad'}">${pass?'Prüfung bestanden':'Prüfung nicht bestanden'}</div><div class="hist">${ja} von ${n} Antworten mit „Ja“ · ${pct} % Punkte</div></div></div>
+    <p style="margin:0">${pass?'Du hast mehr als die Hälfte der Bereiche mit „Ja“ abgeschlossen. Das genügt nach PO Zweiter Teil § 2 Nr. 11.':'Für das Bestehen müssen mehr als die Hälfte der Bereiche mit „Ja“ bewertet werden (PO Zweiter Teil § 2 Nr. 11). Wiederhole die markierten Themen.'} ${pass&&wrong.length?'Die Fehler unten solltest du vor der echten Prüfung noch einmal ansehen.':''}</p>
+  </div>
+  <div class="card sec"><h2 class="label">Nach Themen</h2><div class="cats">${Object.entries(cats).map(([c,v])=>{const p=Math.round(v.s/v.n*100);return `<div class="cat"><span>${esc(c)}</span><div class="bar"><div style="width:${p}%;background:${p>=60?'var(--good)':'var(--bad)'}"></div></div><span>${p} %</span></div>`}).join('')}</div></div>
+  ${wrong.length?`<div class="card sec"><h2 class="label">Zum Nachlernen (${wrong.length})</h2><div class="rev">${wrong.map(r=>`<article><b>${esc(r.q.q)}</b><span class="mine">Deine Antwort: ${esc(r.mine)}</span><span class="ans">Richtig: ${esc(r.q.a)}</span><span class="hist">${esc(r.q.x||'')}</span></article>`).join('')}</div></div>`:'<div class="card"><b>Keine Fehler. Sehr gut, Prüfling!</b></div>'}
+  <div class="row"><button class="btn" id="again" type="button">Gleiche Prüfung wiederholen</button><button class="btn ghost" id="cfg" type="button">Andere Prüfung wählen</button></div>`;
+  $('#again').onclick=start;$('#cfg').onclick=()=>{st.screen='setup';renderSetup();window.scrollTo(0,0)};
+  window.scrollTo(0,0);
+}
+document.addEventListener('keydown',e=>{
+  if(st.screen!=='exam')return;
+  const q=st.qs[st.i];if(!q||e.target.tagName==='TEXTAREA')return;
+  if(!st.answered&&q.mode==='mc'&&/^[1-5]$/.test(e.key)){const b=app.querySelectorAll('.opt')[+e.key-1];if(b)b.click()}
+  else if(e.key==='Enter'&&!st.answered&&q.mode==='mc'&&st.sel>=0){e.preventDefault();submit()}
+});
+$('#themeBtn').onclick=()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;r.dataset.theme=dark?'light':'dark'};
+renderSetup();
+window.__tkd={POOL,V,grade,fold,lev};
+</script>
+
+</body></html>
