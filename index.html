@@ -1,0 +1,1299 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TKD Trainer</title>
+<meta name="theme-color" content="#1b3f94">
+<meta name="description" content="Taekwondo Prüfungstrainer nach DTU PO 2024 / exam trainer">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TKD Trainer">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+
+/* Layout: eine schmale Spalte mit fester Tab-Leiste unten (Daumenzone). Farben aus dem Taegeuk: Blau als Akzent, Rot nur für Fehler.
+   Der Gürtel ist das zentrale Fortschrittsbild. Systemschriften, damit alles offline läuft. */
+:root{
+  --bg:#eef1f7; --surface:#ffffff; --ink:#13203d; --muted:#586484; --line:#d6dcea;
+  --accent:#1b3f94; --accent-ink:#ffffff; --accent-bg:#e4eafa;
+  --good:#1c7a4b; --good-bg:#e1f3e9; --bad:#b3261e; --bad-bg:#fbe7e5; --warn:#8a5300; --warn-bg:#fdf0d8;
+  --font-display:ui-serif,'Iowan Old Style','Palatino Linotype',Georgia,'Noto Serif','Apple SD Gothic Neo','Malgun Gothic',serif;
+  --font-body:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+  --r:12px; --nav:62px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1324; --surface:#151c33; --ink:#e7ebf7; --muted:#9ba6c6; --line:#2a3454;
+  --accent:#92b1ff; --accent-ink:#0d1324; --accent-bg:#1c2850;
+  --good:#63d393; --good-bg:#12301f; --bad:#ff8b82; --bad-bg:#3a1714; --warn:#f0b957; --warn-bg:#342610; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1324; --surface:#151c33; --ink:#e7ebf7; --muted:#9ba6c6; --line:#2a3454;
+  --accent:#92b1ff; --accent-ink:#0d1324; --accent-bg:#1c2850;
+  --good:#63d393; --good-bg:#12301f; --bad:#ff8b82; --bad-bg:#3a1714; --warn:#f0b957; --warn-bg:#342610; color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{min-height:100%}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 var(--font-body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px calc(var(--nav) + 28px + env(safe-area-inset-bottom,0px))}
+.wrap{max-width:600px;margin-inline:auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--font-display);margin:0;line-height:1.25;text-wrap:balance}
+h1{font-size:1.4rem;font-weight:800}h2{font-size:1.15rem;font-weight:700}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0}
+.stack{display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;min-width:0}
+.row.sp{justify-content:space-between}
+.grow{flex:1;min-width:0}
+.label{font-size:.72rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted);font-size:.9rem}
+.btn{border:0;background:var(--accent);color:var(--accent-ink);padding:12px 20px;border-radius:10px;font-weight:600;min-height:44px}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.sm{padding:6px 12px;min-height:36px;font-size:.88rem}
+.btn.danger{background:var(--bad);color:#fff}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+/* Navigation */
+.nav{position:fixed;inset:auto 0 0 0;background:var(--surface);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px));z-index:5}
+.nav button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:var(--nav);color:var(--muted);font-size:.72rem;font-weight:600}
+.nav button svg{width:24px;height:24px}
+.nav button[aria-current="page"]{color:var(--accent)}
+/* Rang-Gürtel */
+.beltbar{height:22px;border-radius:5px;border:1px solid rgba(0,0,0,.35);position:relative;overflow:hidden}
+.beltbar i{position:absolute;inset:0 auto 0 50%;width:18px;margin-left:-9px}
+.prog{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.prog>div{height:100%;background:var(--accent);transition:width .4s}
+.rankname{font-family:var(--font-display);font-weight:800;font-size:1.5rem}
+.ring{position:relative;width:84px;height:84px;flex:none}
+.ring svg{width:84px;height:84px;transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-display);font-size:1.1rem}
+.chip{display:inline-block;font-weight:700;font-size:.75rem;letter-spacing:.04em;text-transform:uppercase;padding:2px 9px;border-radius:99px;border:1px solid currentColor}
+.avatar{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-weight:800;color:#fff;flex:none}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{display:flex;flex-direction:column;gap:3px;text-align:left;padding:14px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);min-width:0}
+.tile b{font-weight:700}
+.tile span{font-size:.82rem;color:var(--muted)}
+.tile.main{grid-column:1/-1;background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tile.main span{color:inherit;opacity:.85}
+/* Formulare */
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.88rem;font-weight:600}
+input[type=text],input[type=date],input[type=search],textarea,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-weight:400}
+textarea{min-height:84px;resize:vertical}
+.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+.seg button{padding:10px 12px;border:1px solid var(--line);background:var(--surface);border-radius:9px;text-align:left;display:flex;flex-direction:column;gap:2px}
+.seg button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-bg);box-shadow:inset 0 0 0 1px var(--accent)}
+.seg small{color:var(--muted);font-size:.76rem;line-height:1.3}
+.belts{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.belt{display:flex;align-items:center;gap:8px;padding:9px;background:var(--surface);border:1px solid var(--line);border-radius:8px;text-align:left;min-width:0;font-weight:600;font-size:.9rem}
+.belt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-bg);box-shadow:inset 0 0 0 1px var(--accent)}
+.sw{flex:none;width:28px;height:12px;border-radius:2px;border:1px solid rgba(0,0,0,.35);position:relative;overflow:hidden}
+.sw i{position:absolute;inset:0 auto 0 50%;width:7px;margin-left:-3.5px}
+details{border:1px solid var(--line);border-radius:9px;padding:9px 12px;background:var(--surface)}
+summary{cursor:pointer;font-weight:600}
+dl.progdl{margin:10px 0 0;display:grid;grid-template-columns:minmax(0,8rem) minmax(0,1fr);gap:6px 12px;font-size:.88rem}
+dl.progdl dt{color:var(--muted);font-weight:600}dl.progdl dd{margin:0}
+@media (max-width:480px){dl.progdl{grid-template-columns:1fr;gap:1px}dl.progdl dd{margin-bottom:7px}}
+/* Quiz */
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar>div{height:100%;background:var(--accent);transition:width .25s}
+.qhead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}
+.q{font-family:var(--font-display);font-size:1.25rem;font-weight:600;line-height:1.4;text-wrap:pretty}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;text-align:left;padding:12px 14px;border:1px solid var(--line);background:var(--surface);border-radius:9px;min-width:0}
+.opt .k{flex:none;width:24px;height:24px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:.78rem;font-weight:700;color:var(--muted)}
+.opt[aria-checked="true"]{border-color:var(--accent);background:var(--accent-bg)}
+.opt[aria-checked="true"] .k{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.opt.ok{border-color:var(--good);background:var(--good-bg)}.opt.no{border-color:var(--bad);background:var(--bad-bg)}
+.opt[disabled]{cursor:default}
+.fb{border-radius:9px;padding:13px 15px;display:flex;flex-direction:column;gap:8px;border:1px solid}
+.fb.good{background:var(--good-bg);border-color:var(--good);color:var(--ink)}.fb.mid{background:var(--warn-bg);border-color:var(--warn)}.fb.bad{background:var(--bad-bg);border-color:var(--bad)}
+.fb.good .chip{color:var(--good)}.fb.mid .chip{color:var(--warn)}.fb.bad .chip{color:var(--bad)}
+.ans{font-weight:600}
+.big{font-family:var(--font-display);font-size:2.2rem;font-weight:800;line-height:1.1}
+.verdict.good{color:var(--good);font-weight:700}.verdict.bad{color:var(--bad);font-weight:700}
+.cat{display:grid;grid-template-columns:minmax(0,9rem) 1fr 3rem;gap:10px;align-items:center;font-size:.88rem}
+.cat span:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.rev article{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:3px;font-size:.92rem}
+.rev .mine{color:var(--bad)}
+/* Listen */
+.qitem{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.qitem:first-child{border-top:0;padding-top:0}
+.qitem .t{font-weight:600;overflow-wrap:anywhere}
+.qitem .a{font-size:.9rem;color:var(--muted);overflow-wrap:anywhere}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:10px}
+.badge{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;font-size:.74rem;line-height:1.25}
+.badge .coin{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-weight:800;font-size:1.05rem;background:var(--accent);color:var(--accent-ink);border:3px solid var(--accent-bg)}
+.badge.off{opacity:.45}.badge.off .coin{background:var(--line);color:var(--muted);border-color:transparent}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(var(--nav) + 14px + env(safe-area-inset-bottom,0px));max-width:560px;margin-inline:auto;background:var(--ink);color:var(--bg);padding:11px 14px;border-radius:10px;font-weight:600;z-index:9;text-align:center}
+.banner{background:var(--warn-bg);border:1px solid var(--warn);border-radius:9px;padding:10px 12px;font-size:.88rem}
+.pop{animation:pop .5s ease-out}
+@keyframes pop{0%{transform:scale(.92);opacity:.4}60%{transform:scale(1.03)}100%{transform:scale(1);opacity:1}}
+.sw-toggle{width:46px;height:26px;border-radius:13px;border:1px solid var(--line);background:var(--line);position:relative;padding:0;flex:none}
+.sw-toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
+.sw-toggle[aria-checked="true"]{background:var(--accent);border-color:var(--accent)}
+.sw-toggle[aria-checked="true"]::after{left:22px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* Ergänzungen */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.top h1{font-size:1.15rem}
+.langs{display:flex;border:1px solid var(--line);border-radius:99px;overflow:hidden}
+.langs button{border:0;background:none;padding:4px 11px;font-size:.78rem;font-weight:700;color:var(--muted)}
+.langs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.who{display:flex;align-items:center;gap:12px;min-width:0}
+.who b{display:block;font-family:var(--font-display);font-size:1.1rem;overflow-wrap:anywhere}
+.stat{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat svg{width:18px;height:18px}
+.stat.flame{color:var(--flame)}.stat.xp{color:var(--accent)}
+.beltbar.big{height:30px}
+.beltbar b{position:absolute;inset:-4px auto -4px 50%;width:20px;margin-left:-10px;background:rgba(0,0,0,.2);border-radius:3px}
+.tile{cursor:pointer}
+.tile.main b{font-size:1.1rem}
+.tile .n{font-variant-numeric:tabular-nums}
+.mcard{padding:0;overflow:hidden}
+.mhead{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:none;padding:14px 16px}
+.mhead b{display:block}
+.mhead .chev{font-size:1.4rem;color:var(--muted);transition:transform .15s}
+.mhead[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.mbody{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
+.fld{display:flex;flex-direction:column;gap:6px}
+.pill{display:inline-block;font-size:.74rem;font-weight:700;padding:1px 8px;border-radius:99px;background:var(--accent-bg);color:var(--accent);font-variant-numeric:tabular-nums}
+.act{display:flex;gap:4px;align-items:flex-end;height:84px}
+.act .d{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;font-size:.62rem;color:var(--muted);height:100%}
+.act i{display:block;width:100%;background:var(--accent);border-radius:3px 3px 0 0;min-height:3px}
+.act i.g{background:var(--good)}
+.errs{display:flex;flex-direction:column;gap:4px;color:var(--bad);font-size:.9rem}
+.ov{position:fixed;inset:0;background:rgba(10,15,30,.55);display:grid;place-items:center;padding:16px;z-index:20}
+.dlg{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:14px}
+.sel{appearance:auto}
+.xpline{display:flex;flex-wrap:wrap;gap:6px}
+.copybox{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.78rem;min-height:140px}
+.dim{opacity:.55}
+.avs{display:flex;flex-wrap:wrap;gap:8px}
+.avs button{border:2px solid transparent;border-radius:50%;padding:0;background:none}
+.avs button[aria-pressed="true"]{border-color:var(--accent)}
+.card.hero{gap:14px}
+.sub{font-size:.82rem;color:var(--muted)}
+:root{--flame:#c2410c}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--flame:#ffb066}}
+:root[data-theme="dark"]{--flame:#ffb066}
+
+:root{padding-top:env(safe-area-inset-top,0px)}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<nav class="nav" id="nav" aria-label="Navigation"></nav>
+<div id="toastHost"></div>
+<script>
+/* ===================== DATEN ===================== */
+const GR=[
+ {n:'9. Kup',belt:'Weißer Gürtel mit gelbem Streifen',c:['#f3f3ee','#e6b800'],prep:'mind. 2 Monate seit erstmaliger Trainingsaufnahme',tech:'Grundschule (Basis-Einzeltechniken)',zk:'Step-Sparring + Pratzensparring',bruch:'–',theo:'Koreanische und deutsche Bezeichnungen der bisherigen Techniken, Fußstellungen und Kommandos',wahl:'– (Programm ist verpflichtend vorgegeben)'},
+ {n:'8. Kup',belt:'Gelber Gürtel',c:['#e6b800'],prep:'mind. 2 Monate seit letzter Graduierung',vor:'Stichprobe aus bisherigen Pflichtprogrammen',tech:'Grundschule (Basis-Einzel- und Mehrfachtechniken)',zk:'Step-Sparring + Pratzensparring (Angriff – Konter)',bruch:'–',theo:'Bezeichnungen der Techniken, Fußstellungen, Kommandos + Wettkampfregeln nach WOZ oder WOP',wahl:'1 aus 5: 1-Schritt-Kampf · Kreuzformen · Situationssparring · Freies Sparring (1 Runde) · SV: Fallschule + Ausweichen + Lösen einfacher Handangriffe'},
+ {n:'7. Kup',belt:'Gelber Gürtel mit grünem Streifen',c:['#e6b800','#2e8b57'],prep:'mind. 2 Monate seit letzter Graduierung',vor:'Stichprobe aus bisherigen Pflichtprogrammen',tech:'1. Form',zk:'Step-Sparring + Pratzensparring (Angriff – Konter)',bruch:'–',theo:'Bisherige Themen + Erklärung der Techniken, Fußstellungen und Übungen aus dem bisherigen Programm',wahl:'1 aus 5: Grundschule · 1-Schritt-Kampf · Situations-Sparring · Freies Sparring · SV: Fallschule + Ausweichen + Lösen einfacher Handangriffe'},
+ {n:'6. Kup',belt:'Grüner Gürtel',c:['#2e8b57'],prep:'mind. 2 Monate seit letzter Graduierung',vor:'Stichprobe aus bisherigen Pflichtprogrammen',tech:'2. Form',zk:'Step-Sparring + Pratzensparring (Angriff – Konter)',bruch:'–',theo:'Bisherige Themen + Notwehrrecht sinngemäß',wahl:'1 aus 5: Grundschule · 1-Schritt-Kampf · Situations-Sparring · Freies Sparring · SV: Verteidigung gegen Angriffe aus der Nahdistanz'},
+ {n:'5. Kup',belt:'Grüner Gürtel mit blauem Streifen',c:['#2e8b57','#1f4fb0'],prep:'mind. 2 Monate seit letzter Graduierung',vor:'Stichprobe aus bisherigen Pflichtprogrammen',tech:'3. Form',zk:'Step-Sparring + Pratzensparring (Angriff – Konter)',bruch:'–',theo:'Bisherige Themen + Geistige Hintergründe des TKD',wahl:'1 aus 5: Grundschule · 1-Schritt-Kampf · Situations-Sparring · Freies Sparring · SV: Verteidigung gegen kombinierte Angriffe aus der Nah- und mittleren Distanz'},
+ {n:'4. Kup',belt:'Blauer Gürtel',c:['#1f4fb0'],prep:'mind. 4 Monate seit letzter Graduierung',tech:'Grundschule + 4. Form',zk:'Pratzensparring + Situations-Sparring (Angriff – Konter)',bruch:'1 Technik nach eigener Wahl',theo:'Bisherige Themen + Kenntnis der vitalen Körperpunkte',wahl:'1 aus 9: 1-/2-/3-Schritt-Kampf · Poomsae Applikation · 2 zusätzliche Formen · 1-Schritt-Kampf (Zweikampf) · Sparring mit einfacher Aufgabenstellung · Freies Sparring · SV: Freie Abwehr aus langer, mittlerer und Nahdistanz + „Raumnot“'},
+ {n:'3. Kup',belt:'Blauer Gürtel mit rotem Streifen',c:['#1f4fb0','#c4302b'],prep:'mind. 4 Monate seit letzter Graduierung',tech:'Grundschule + 5. Form',zk:'Pratzensparring + Situations-Sparring (Angriff – Konter)',bruch:'2 verschiedene Einzeltechniken nach eigener Wahl',theo:'Bisherige Themen + Beschreibung und Erklärung der Trainingsinhalte',wahl:'1 aus 9 (wie 4. Kup); SV: Freie Abwehr aus allen Distanzen + Bodenlage + abgesprochene Stockangriffe'},
+ {n:'2. Kup',belt:'Roter oder brauner Gürtel',c:['#c4302b'],prep:'mind. 6 Monate seit letzter Graduierung',tech:'Grundschule + 6. Form',zk:'Pratzensparring + Situations-Sparring (Angriff – Konter)',bruch:'2 verschiedene Einzeltechniken nach eigener Wahl',theo:'Bisherige Themen + Technikprinzipien',wahl:'1 aus 9 (wie 4. Kup); SV: Abwehr gegen freie unbewaffnete Angriffe und freie Stockangriffe + abgesprochene Messerangriffe'},
+ {n:'1. Kup',belt:'Roter oder brauner Gürtel mit schwarzem Streifen',c:['#c4302b','#111'],prep:'mind. 6 Monate seit letzter Graduierung',tech:'Grundschule + 7. Form',zk:'Pratzensparring + Situations-Sparring (Angriff – Konter)',bruch:'2 verschiedene Einzeltechniken nach eigener Wahl',theo:'Bisherige Themen + Organisation/Aufbau der DTU und des zuständigen LV + Grundkenntnisse zur Trainingslehre',wahl:'1 aus 9 (wie 4. Kup); SV: Abwehr gegen freie unbewaffnete und bewaffnete Angriffe'},
+ {n:'1. Poom/Dan',belt:'Rot-schwarzer (Poom) bzw. schwarzer Gürtel (Dan)',c:['#111','#c4302b'],prep:'mind. 1 Jahr seit letzter Graduierung',tech:'1 Form aus dem Vorprogramm nach Losvorgabe + Taegeuk Pal Jang',zk:'Freies Sparring (1 Runde) + Sparring mit einfacher technischer/taktischer Aufgabenstellung (1 Runde)',bruch:'3 verschiedene Techniken, darunter eine 2er-Kombination',theo:'entfällt (bei Poom/Dan keine Theorieprüfung)',wahl:'2 aus 9, ggf. mit bis zu 3 eigenen Partnern; Schritt-Kämpfe mind. 8 versch. Übungen'},
+ {n:'2. Poom/Dan',belt:'Rot-schwarzer (Poom) bzw. schwarzer Gürtel (Dan)',c:['#111','#c4302b'],prep:'mind. 1 Jahr seit letzter Graduierung',tech:'1 Form aus dem Vorprogramm nach Losvorgabe + Poomsae Koryeo',zk:'Freies Sparring (1 Runde) + Sparring mit technischer/taktischer Aufgabenstellung (1 Runde)',bruch:'4 verschiedene Techniken; 2er-Kombination und eine Sprungtechnik',theo:'entfällt',wahl:'2 aus 9; SV zusätzlich Abwehr von Einzelangriffen mehrerer Angreifer aus der Reihe in schneller Folge'},
+ {n:'3. Poom/Dan',belt:'Rot-schwarzer (Poom) bzw. schwarzer Gürtel (Dan)',c:['#111','#c4302b'],prep:'mind. 2 Jahre seit letzter Graduierung',tech:'1 Form aus dem Vorprogramm nach Losvorgabe + Poomsae Keumgang',zk:'Freies Sparring (1 Runde) + Sparring mit technischer/taktischer Aufgabenstellung (1 Runde)',bruch:'5 verschiedene Techniken; 3er-Kombination und 2 verschiedene Sprungtechniken',theo:'entfällt',wahl:'2 aus 9; SV: Abwehr gegen mehrere Angreifer aus verschiedenen Richtungen'},
+ {n:'4. Dan',belt:'Schwarzer Gürtel (Lehrergrad)',c:['#111'],prep:'mind. 3 Jahre seit letzter Graduierung',tech:'1 Form aus dem Vorprogramm nach eigener Wahl + Poomsae Taebaek und Pyeongwon',zk:'Freies Sparring mit eigenem Partner (1 Runde)',bruch:'Technik(en) mit erhöhtem Schwierigkeitsgrad nach eigener Wahl',theo:'entfällt',wahl:'2 aus 9; SV: eigenes Programm (max. 3:00 Min.)'},
+ {n:'5. Dan',belt:'Schwarzer Gürtel (Lehrergrad)',c:['#111'],prep:'mind. 4 Jahre seit letzter Graduierung',tech:'1 Form aus dem Vorprogramm nach eigener Wahl + Poomsae Pyeongwon und Sipjin',zk:'Freies Sparring mit eigenem Partner (1 Runde)',bruch:'Technik(en) mit erhöhtem Schwierigkeitsgrad nach eigener Wahl',theo:'entfällt',wahl:'2 aus 9; SV: eigenes Programm (max. 3:00 Min.)'},
+ {n:'6. Dan',belt:'Schwarzer Gürtel (Lehrergrad)',c:['#111'],prep:'mind. 5 Jahre seit letzter Graduierung',zul:'Gültige DOSB-Trainer-Lizenz C „Taekwondo“',tech:'Poomsae Sipjin und Poomsae Jitae',zk:'Wahlbereich (Sparring-Optionen)',bruch:'Wahloption 10: Technik(en) mit erhöhtem Schwierigkeitsgrad',theo:'entfällt',wahl:'3 aus 10'},
+ {n:'7. Dan',belt:'Schwarzer Gürtel (Lehrergrad)',c:['#111'],prep:'mind. 6 Jahre seit letzter Graduierung',zul:'Gültige DOSB-Trainer-Lizenz C „Taekwondo“',tech:'Poomsae Jitae und Poomsae Cheonkwon',zk:'Wahlbereich (Sparring-Optionen)',bruch:'Wahloption 10',theo:'entfällt',wahl:'3 aus 10'},
+ {n:'8. Dan',belt:'Schwarzer Gürtel (Lehrergrad)',c:['#111'],prep:'mind. 7 Jahre seit letzter Graduierung',zul:'Gültige DOSB-Trainer-Lizenz B „Taekwondo“ oder Bundes-Kampfrichter-Lizenz',tech:'Poomsae Cheonkwon und Poomsae Hansu',zk:'Wahlbereich (Sparring-Optionen)',bruch:'Wahloption 10',theo:'entfällt',wahl:'3 aus 10'},
+ {n:'9. Dan',belt:'Schwarzer Gürtel (Lehrergrad)',c:['#111'],prep:'mind. 8 Jahre seit letzter Graduierung',zul:'Gültige DOSB-Trainer-Lizenz B „Taekwondo“ oder Bundes-Kampfrichter-Lizenz',tech:'Poomsae Hansu und Poomsae Ilyeo',zk:'Wahlbereich (Sparring-Optionen)',bruch:'Wahloption 10',theo:'entfällt',wahl:'3 aus 10'},
+];
+const GROUPS=[['Kup-Grade (Schülergrade)',0,8],['Poom / Dan (Leistungsgrade)',9,11],['Lehrergrade (4.–9. Dan)',12,17]];
+
+const TAE=[
+ {k:'Taegeuk Il Jang',n:'1',tri:'Geon',de:'Himmel',mv:18},{k:'Taegeuk I Jang',n:'2',tri:'Tae',de:'See (Freude)',mv:18},
+ {k:'Taegeuk Sam Jang',n:'3',tri:'Ri',de:'Feuer (Sonne)',mv:20},{k:'Taegeuk Sa Jang',n:'4',tri:'Jin',de:'Donner',mv:20},
+ {k:'Taegeuk O Jang',n:'5',tri:'Seon',de:'Wind',mv:20},{k:'Taegeuk Yuk Jang',n:'6',tri:'Gam',de:'Wasser',mv:19},
+ {k:'Taegeuk Chil Jang',n:'7',tri:'Gan',de:'Berg',mv:25},{k:'Taegeuk Pal Jang',n:'8',tri:'Gon',de:'Erde',mv:27}];
+const POO=[
+ {k:'Koryeo',alt:['Koryo','Goryeo'],dan:'2. Dan',mv:30,de:'Goryeo-Dynastie (Geist des Volkes, Gelehrsamkeit)',re:/goryeo|dynastie|korea|volk|gelehrt|kory/},
+ {k:'Keumgang',alt:['Kumgang','Geumgang'],dan:'3. Dan',mv:27,de:'Diamant (Härte, Unzerbrechlichkeit; auch ein heiliger Berg)',re:/diamant|hart|berg|keum|unzerbrech/},
+ {k:'Taebaek',alt:['Taebeak','Taebaeg'],dan:'4. Dan',mv:26,de:'Berg Taebaek (Ort der Gründungslegende Koreas, „Helligkeit“)',re:/berg|taebaek|gruend|grund|licht|hell/},
+ {k:'Pyeongwon',alt:['Pyongwon','Pyeong won'],dan:'4. und 5. Dan',mv:25,de:'Weite Ebene (Lebensgrundlage, Weite)',re:/ebene|weit|flach/},
+ {k:'Sipjin',alt:['Shipjin'],dan:'5. und 6. Dan',mv:29,de:'Zehn Symbole der Langlebigkeit / Dezimalsystem (Wachstum, Beständigkeit)',re:/zehn|dezimal|langleb|wachstum|10/},
+ {k:'Jitae',alt:['Ji tae','Jitae'],dan:'6. und 7. Dan',mv:28,de:'Erde (Ursprung des Lebens)',re:/erde/},
+ {k:'Cheonkwon',alt:['Chonkwon','Cheon kwon'],dan:'7. und 8. Dan',mv:29,de:'Himmel',re:/himmel/},
+ {k:'Hansu',alt:['Hanshu'],dan:'8. und 9. Dan',mv:27,de:'Wasser',re:/wasser/},
+ {k:'Ilyeo',alt:['Ilyo','Il yeo'],dan:'9. Dan',mv:25,de:'Einheit (Eins sein von Körper und Geist; buddhistische Idee)',re:/einheit|eins|geist|koerper|buddh|vereinig/},
+];
+
+/* Vokabeln: k=Koreanisch, a=Schreibvarianten, de=deutsche Entsprechung, d=Regex für Antworten (sprachlich normalisiert, ohne Umlaute), c=Rubrik, g=ab Grad */
+const V=[];
+const v=(c,g,k,a,de,d,o)=>V.push(Object.assign({c,g,k,a,de,d:new RegExp(d)},o||{}));
+const S='Stellungen (Seogi)',T='Tritte (Chagi)',B='Abwehr (Makgi)',TE='Handtechniken',K='Körperteile (Waffen)',R='Richtungen & Zonen',KD='Kommandos & Dojang',D='Disziplinen',NN='Zahlen (rein koreanisch)',NS='Zahlen (sino-koreanisch)';
+v(S,0,'Charyeot Seogi',['Charyot Seogi','Charyeot Soki'],'Aufmerksamkeitsstellung (Hab-Acht)','aufmerk|hab.?acht|still|achtung|attention');
+v(S,0,'Naranhi Seogi',['Naranhi Junbi Seogi','Narani Seogi','Narani Junbi Seogi'],'Parallelstellung (Bereitschaftsstellung)','parallel|bereit');
+v(S,0,'Moa Seogi',['Moa Soki'],'Geschlossene Stellung (Füße zusammen)','geschlossen|zusammen');
+v(S,0,'Ap Seogi',['Ap Soki'],'Gehstellung (kurze Vorwärtsstellung)','geh|kurz|walking');
+v(S,0,'Ap Kubi',['Ap Gubi','Ap Kkubi','Ap Gobi'],'Große Vorwärtsbeugestellung','vorw.*beug|gro.*vorw|front stance|beuge');
+v(S,1,'Juchum Seogi',['Juchum Soki','Juchoom Seogi'],'Reiterstellung','reiter|horse');
+v(S,2,'Dwit Kubi',['Dwit Gubi','Dwi Kubi','Dwi Gubi'],'Rückwärtsbeugestellung','ruck.*beug|ruckw|back stance');
+v(S,5,'Beom Seogi',['Bom Seogi','Beom Soki'],'Tigerstellung (Katzenstellung)','tiger|katze|cat');
+v(S,6,'Kkoa Seogi',['Koa Seogi','Kkoa Soki','Goa Seogi'],'Kreuzstellung','kreuz|cross');
+v(S,9,'Hakdari Seogi',['Hakdari Soki'],'Kranichstellung (Einbeinstand)','kranich|einbein|crane');
+v(T,0,'Ap Chagi',['Ap Tchagi','Ap Chaki'],'Frontkick (Vorwärtstritt)','front|vorw|vorne|gerade');
+v(T,1,'Dollyeo Chagi',['Dolryo Chagi','Dollyo Chagi','Dollyeo Chaki','Doll yeo Chagi'],'Halbkreistritt (Roundhouse-Kick)','halbkreis|round|kreis|bogen');
+v(T,2,'Yeop Chagi',['Yop Chagi','Yeob Chagi'],'Seitwärtstritt (Seitkick)','seit|side');
+v(T,3,'Dwit Chagi',['Dwi Chagi','Dwit Chaki'],'Rückwärtstritt','ruck|hinten|back');
+v(T,3,'Mireo Chagi',['Miro Chagi','Mireo Chaki'],'Schiebetritt','schieb|push|stoss');
+v(T,5,'Naeryeo Chagi',['Naeryo Chagi','Nerryeo Chagi'],'Abwärtstritt (Axtkick)','abwart|axt|ax|hammer|nach unten');
+v(T,6,'Twio Chagi',['Twieo Chagi','Tuio Chagi','Tui-o Chagi','Twyo Chagi'],'Sprungtritt','sprung|flying|spring');
+v(T,9,'Dwi Huryeo Chagi',['Dwit Huryeo Chagi','Dwi Hooryo Chagi','Dwi Huryo Chagi'],'Hakentritt (rückwärts drehend)','haken|hook');
+v(B,0,'Arae Makgi',['Arae Maki','Are Makgi'],'Abwehr tief (untere Abwehr)','tief|unten|low');
+v(B,0,'Momtong Makgi',['Momtong Maki'],'Abwehr Körpermitte (Rumpfabwehr)','mitte|rumpf|body|middle|koerper');
+v(B,1,'Eolgul Makgi',['Olgul Makgi','Eolgul Maki'],'Abwehr hoch (Gesichtsabwehr)','hoch|gesicht|kopf|high|face');
+v(B,3,'Sonnal Makgi',['Sonnal Maki'],'Handkantenabwehr','handkante|messerhand|knife');
+v(TE,0,'Jirugi',['Chirugi','Jiruki'],'Stoß (Fauststoß)','sto|punch|faust');
+v(TE,0,'Momtong Jirugi',['Momtong Chirugi'],'Fauststoß zur Körpermitte','mitte|rumpf|body|middle|koerper');
+v(TE,1,'Eolgul Jirugi',['Olgul Jirugi'],'Fauststoß zum Gesicht (Kopf)','gesicht|kopf|face|high');
+v(TE,3,'Chigi',['Tchigi','Jigi'],'Schlag','schlag|strike');
+v(TE,6,'Palkup Chigi',['Palkub Chigi','Palkup Tchigi'],'Ellbogenschlag','ellb|elbow');
+v(K,0,'Joomeok',['Jumeok','Jumok','Joomok','Joomeock'],'Faust','faust|fist');
+v(K,1,'Apchuk',['Ap Chuk','Apchook','Ap Chook'],'Fußballen','ballen|ball');
+v(K,3,'Sonnal',['Sonal'],'Handkante (Messerhand)','handkante|messerhand|knife');
+v(K,3,'Dwichuk',['Dwi Chuk','Dwit Chuk','Dwichook'],'Ferse','ferse|heel');
+v(K,3,'Baldeung',['Baldung','Bal Deung'],'Fußrücken','rucken|instep');
+v(K,5,'Balnal',['Bal Nal'],'Fußkante (Fußaußenkante)','kante|aussen|edge|blade');
+v(K,5,'Balbadak',['Bal Badak','Balpadak'],'Fußsohle','sohle|sole');
+v(K,5,'Mureup',['Mu Reup','Murup'],'Knie','knie|knee');
+v(K,6,'Palkup',['Palkub'],'Ellbogen','ellb|elbow');
+v(R,0,'Momtong',['Momtong'],'Körpermitte (Rumpf)','mitte|rumpf|body|middle|koerper');
+v(R,0,'Eolgul',['Olgul'],'Gesicht (Kopfbereich)','gesicht|kopf|face');
+v(R,0,'Arae',['Are','Ara'],'unten (tiefe Zone)','unten|tief|low');
+v(R,0,'Ap',['Ab'],'vorne (vorwärts)','vorn|vorw|front');
+v(R,1,'Dwi',['Dwit','Twi'],'hinten (rückwärts)','hinten|ruck|back');
+v(R,1,'Yeop',['Yop','Yeob'],'Seite (seitlich)','seit|side');
+v(R,3,'An',['Ahn'],'innen','innen|inner|inside');
+v(R,3,'Bakkat',['Bakat','Pakkat'],'außen','aussen|aussere|outer|outside');
+v(R,2,'Dollyeo',['Dolryo','Dollyo'],'kreisend (drehend)','kreis|dreh|round|rotat|bogen');
+v(R,5,'Twio',['Twieo','Tuio'],'springend (Sprung)','spring|sprung|jump|fly');
+v(KD,0,'Charyeot',['Charyot','Charyeot'],'Achtung! (Aufmerksamkeit)','achtung|aufmerk|still|attention');
+v(KD,0,'Kyeongnye',['Kyungnye','Gyeongnye','Kyoungrye','Kyungrye','Kyeongrye','Gyeongrye'],'Verbeugung (Gruß)','verbeug|gru|bow|salut');
+v(KD,0,'Junbi',['Joonbi','Jun bi','Joonbi'],'Bereit (Bereitschaft)','bereit|ready');
+v(KD,0,'Sijak',['Shijak','Siyak','Shi jak'],'Beginnen (Start)','beginn|start|anfang|los');
+v(KD,0,'Geuman',['Kuman','Gooman','Keuman'],'Aufhören (Stopp, Ende)','aufh|stopp|stop|ende|halt');
+v(KD,0,'Baro',['Barro','Paro'],'Zurück (in die Ausgangsstellung)','zuruck|ausgang|return|grund');
+v(KD,0,'Swieo',['Shiyo','Swio','Shio','Swieo'],'Entspannen (Pause)','entspann|pause|ruhe|rest');
+v(KD,1,'Dwiro Dora',['Dwiro-Dora','Dwiro Tora','Twiro Dora'],'Kehrt! (Umdrehen)','kehrt|umdreh|dreh|wend|about');
+v(KD,0,'Dojang',['Dojan','Dojang'],'Trainingshalle (Übungsraum)','training|halle|raum|ubungs|gym|schule');
+v(KD,0,'Dobok',['Dobak','Dobog'],'Trainingsanzug','anzug|uniform|kleidung|training');
+v(KD,0,'Ti',['Tti','Dti'],'Gürtel','gurtel|belt');
+v(KD,0,'Sabeomnim',['Sabumnim','Sabom Nim','Sabeom Nim','Sabumnim'],'Meister (Lehrer)','meister|lehrer|master|instruktor|trainer');
+v(KD,0,'Kihap',['Gihap','Kiyap'],'Kampfschrei','kampfschrei|schrei|kiai');
+v(KD,0,'Gamsahamnida',['Kamsahamnida','Kamsahabnida','Gamsahabnida'],'Danke (vielen Dank)','dank|thanks');
+v(D,0,'Gyeorugi',['Kyorugi','Kyeorugi','Gyeoru gi'],'Zweikampf (Sparring)','zweikampf|sparring|kampf');
+v(D,0,'Hosinsul',['Hosinsool','Hoshinsool','Hosin sul'],'Selbstverteidigung','selbstverteidig');
+v(D,1,'Poomsae',['Poomse','Pumse','Poomsae'],'Formen (festgelegter Formenlauf)','form|lauf');
+v(D,1,'Hogu',['Hoggu'],'Brustschutz (Kampfweste)','brust|weste|schutz|chest');
+v(D,1,'Ilbo Daeryeon',['Ilbo Taeryon','Ilbo Taeryeon','Ilbo Deryeon','Ilbo Daeryon','Il Bo Daeryeon'],'1-Schritt-Kampf','(1|ein|eins).?schritt|one.?step');
+v(D,3,'Ibo Daeryeon',['Ibo Taeryon','Ibo Daeryon','I Bo Daeryeon'],'2-Schritt-Kampf','(2|zwei).?schritt|two.?step');
+v(D,3,'Sambo Daeryeon',['Sambo Taeryon','Sambo Daeryon','Sam Bo Daeryeon'],'3-Schritt-Kampf','(3|drei).?schritt|three.?step');
+v(D,3,'Gyeokpa',['Kyokpa','Kyeokpa','Gyokpa'],'Bruchtest','bruch|break');
+v(D,3,'Kukkiwon',['Gukkiwon','Kukki Won'],'Welt-Taekwondo-Hauptquartier (Seoul)','hauptquartier|seoul|zentrale|welt|world|hq');
+[['Hana',['Hanna'],1],['Dul',['Dool'],2],['Set',['Sed','Seth'],3],['Net',['Ned'],4],['Daseot',['Dasot','Dasoet'],5],['Yeoseot',['Yosot','Yeosot','Yoseot'],6],['Ilgop',['Ilgob','Ilgup'],7],['Yeodeol',['Yodol','Yeodol','Yodeol'],8],['Ahop',['Ahob','Ahup'],9],['Yeol',['Yol','Yeul'],10]].forEach(([k,a,n])=>v(NN,0,k,a,String(n),'\\b'+n+'\\b|'+['','eins','zwei','drei','vier','funf','sechs','sieben','acht','neun','zehn'][n],{num:1}));
+[['Il',['Ill'],1],['I',['Ee','Yi'],2],['Sam',['Samm'],3],['Sa',['Saa'],4],['O',['Oh'],5],['Yuk',['Yook','Yuuk'],6],['Chil',['Jil','Chill'],7],['Pal',['Phal','Bal'],8],['Gu',['Ku','Goo'],9],['Sip',['Ship','Sib'],10]].forEach(([k,a,n])=>v(NS,2,k,a,String(n),'\\b'+n+'\\b|'+['','eins','zwei','drei','vier','funf','sechs','sieben','acht','neun','zehn'][n],{num:1}));
+V.forEach((e,i)=>e.id=i);
+
+/* Handgeschriebene Fragen: g=ab Grad, d=Schwierigkeit 1–3, c=Rubrik, q, a=richtige Antwort, w=falsche Antworten,
+   x=Erklärung, re=Regex für Freitext (Normalform ohne Umlaute), kw=Gruppen von Schlüsselwörtern, need=benötigte Gruppen */
+const H=[];
+const h=(g,d,c,q,a,w,x,o)=>H.push(Object.assign({g,d,c,q,a,w,x},o||{}));
+const PO='Prüfungsordnung',TH='Theorie & Geist',PS='Poomsae',ZK='Zweikampf & Technik',SV='Selbstverteidigung',BR='Bruchtest';
+/* --- Prüfungsordnung allgemein --- */
+h(0,1,PO,'Was wird beim 10. Kup (Weißgurt) laut Prüfungsordnung verlangt?','Keine Prüfung; vorausgesetzt werden Kenntnis und Beachtung der Verhaltensregeln im Dojang und beim Training',['Eine Prüfung mit Grundschule und Step-Sparring','Nur ein mündlicher Theorietest','Taegeuk Il Jang als Pflichtform'],'PO § 2: Zum 10. Kup erfolgt keine Prüfung.',{re:[/keine|nicht|entfall|verhalt|regel/]});
+h(0,1,PO,'Wie sind die Gürtelkategorien laut PO unterteilt?','Kup (Schülergrad), Poom und Dan (Meistergrad)',['Kyu, Poom und Sabom','Kup, Dan und Gup','Anfänger, Fortgeschrittene, Meister'],'PO § 1 Nr. 5: Kup = Schülergrad (Farbgürtel), Poom, Dan = Meistergrad.',{kw:[[/kup/],[/poom/],[/dan/]],need:3});
+h(0,1,PO,'Für wen gilt der rot-schwarze Gürtel (Poom)?','Kinder und Jugendliche unter 15 Jahren',['Alle Anwärter zwischen 1. Kup und 1. Dan','Erwachsene ab 40 Jahren','Jugendliche ab 15 Jahren'],'Poom = rot-schwarzer Gürtel für alle unter 15. Ab 15 Jahren gibt es den schwarzen Gürtel (Dan). Der Poomgrad kann nach Erreichen des Mindestalters ohne technische Prüfung in den Dangrad umgeschrieben werden.',{re:[/unter 15|<\s*15|kinder/]});
+h(0,1,PO,'Welche Dan-Grade zählen zu den „Leistungsgraden“?','1. bis 3. Dan',['1. bis 4. Dan','4. bis 9. Dan','1. bis 5. Dan'],'1.–3. Dan = Leistungsgrade, 4.–9. Dan = Lehrergrade.',{re:[/1\D{1,12}3/]});
+h(0,1,PO,'Wie viele Dan-Grade bilden die „Lehrergrade“?','4. bis 9. Dan',['3. bis 9. Dan','5. bis 9. Dan','6. bis 9. Dan'],'Lehrergrade: 4.–9. Dan; der Schwerpunkt liegt auf der Lehrerqualifikation.',{re:[/4\D{1,12}9/]});
+h(0,1,PO,'Wer benötigt für jede Prüfungsteilnahme eine schriftliche Einverständniserklärung?','Minderjährige Anwärter (von mindestens einer sorgeberechtigten Person)',['Alle Anwärter über 40','Nur Dan-Anwärter','Alle Poom-Anwärter ohne Sportpass'],'PO § 1 Nr. 3: Die Erklärung muss vor Prüfungsbeginn vorliegen.',{re:[/minderj|unter 18|kinder|jugend/]});
+h(1,2,PO,'Wie lautet der Prüfungsbereich, der bis einschließlich 5. Kup ein eigenständiges Prüfungsfach ist?','Überprüfung des Vorprogramms (Stichprobe)',['Wettkampfregeln','Bruchtest','Notwehrrecht'],'Die Überprüfung des Vorprogramms bis zum 5. Kup ist eigenständiges Prüfungsfach; sie erfolgt stichprobenweise.',{re:[/vorprogramm|stichprobe/]});
+h(0,2,PO,'Wer wählt die Stichproben aus dem Vorprogramm aus, wenn der Landesverband nichts verbindlich vorgibt?','Der Prüfer nach eigenem Ermessen',['Der Anwärter','Der Trainer des Anwärters','Das Los'],'PO § 1 Nr. 6.',{re:[/pruefer|prufer/]});
+h(1,1,PO,'Ab dem 8. Kup besteht die Prüfung aus Pflichtprogramm und…','Wahlpflichtprogramm',['Zusatzprogramm','Kürprogramm','Freiwilligem Bonusteil'],'Zum 9. Kup ist das Programm verpflichtend vorgegeben; ab dem 8. Kup kommt der Wahlpflichtteil hinzu.',{re:[/wahlpflicht|wahl/]});
+h(0,2,PO,'Wie wird die Prüfungsleistung je Prüfungsdisziplin bewertet?','Mit „Ja“ (ausreichend) oder „Nein“ (nicht ausreichend)',['Mit Schulnoten von 1 bis 6','Mit Punkten von 0 bis 10','Mit „Gut“, „Befriedigend“ oder „Mangelhaft“'],'PO Zweiter Teil § 2 Nr. 7 b.',{re:[/\bja\b.*\bnein\b|\bnein\b.*\bja\b/]});
+h(0,2,PO,'Wann gilt eine Prüfung als bestanden?','Wenn mehr als die Hälfte der Bereiche mit „Ja“ bewertet wurde',['Wenn alle Bereiche mit „Ja“ bewertet wurden','Wenn mindestens zwei Drittel „Ja“ erhalten','Wenn mindestens die Hälfte der Bereiche „Ja“ hat'],'PO Zweiter Teil § 2 Nr. 11: Mehr als die Hälfte (also nicht genau 50 %). Bei Dan-Prüfungen gilt das Mehrheitsergebnis der Kommission.',{re:[/mehr als die haelfte|mehr als die halfte|>\s*50|ueber die halfte|uber die halfte/]});
+h(0,3,PO,'Welche Qualitätsstufe genügt laut PO im Praxisteil bei Anfängern, bei Fortgeschrittenen und im Dan-Bereich?','Anfänger „Grobform“, Fortgeschrittene „Feinform“, Dan „Feinstform“',['Anfänger „Feinform“, Fortgeschrittene „Feinstform“, Dan „Perfektionsform“','Alle „Grobform“, Dan „Feinform“','Anfänger „Grundform“, Fortgeschrittene „Grobform“, Dan „Feinform“'],'PO Zweiter Teil § 2 Nr. 7 a: Anfänger mind. Grobform, Fortgeschrittene mind. Feinform, Dan hoher technischer Perfektionsgrad (Feinstform).',{kw:[[/grobform/],[/feinform/],[/feinstform/]],need:3});
+h(0,2,PO,'Wie oft darf eine Form bei Abbruch oder mangelhafter Ausführung auf Wunsch des Anwärters wiederholt werden?','Einmal; gewertet wird der bessere Lauf',['Zweimal; gewertet wird der letzte Lauf','Gar nicht','Einmal; gewertet wird der erste Lauf'],'PO Zweiter Teil § 2 Nr. 5 a (Kup- und Dan-Prüfungen).',{re:[/(ein ?mal|1x|einmal|\b1\b).*(besser)|besser.*(ein ?mal|\b1\b)/]});
+h(0,2,PO,'Nach welcher Frist kann eine nicht bestandene Kup-Prüfung frühestens wiederholt werden?','Nach 3 Wochen',['Nach 1 Woche','Nach 3 Monaten','Nach 6 Monaten'],'PO Zweiter Teil § 2 Nr. 13 b: Kup nach 3 Wochen, Dan nach 3 Monaten.',{re:[/\b3\b|drei/]});
+h(9,2,PO,'Nach welcher Frist kann eine nicht bestandene Dan-Prüfung frühestens wiederholt werden?','Nach 3 Monaten',['Nach 3 Wochen','Nach 6 Monaten','Nach 1 Jahr'],'Kup-Prüfungen nach 3 Wochen, Dan-Prüfungen nach 3 Monaten.',{re:[/\b3\b|drei/]});
+h(0,3,PO,'Welche Einspruchsmöglichkeit besteht gegen ein Prüfungsergebnis?','Nur gegen formelles Fehlverhalten des Prüfers oder Verfahrensmängel; schriftlich mit Begründung binnen 2 Wochen beim BPR',['Gegen jede Leistungsbewertung binnen 4 Wochen beim Landesverband','Gar kein Einspruch','Gegen jede Bewertung, mit Filmaufnahmen als Beweis'],'Die Leistungsbewertung selbst ist endgültig. Filmaufnahmen sind nicht als Beweismittel zugelassen. BPR = Bundesreferent für das Prüfungswesen.',{kw:[[/formell|verfahren|mangel|fehlverhalten/],[/2 wochen|zwei wochen|14 tage/],[/bpr|bundesreferent/]],need:2});
+h(0,2,PO,'Wie wird bei Kup-Prüfungen die Theorie geprüft?','Mündlich',['Schriftlich per Fragebogen','Praktisch als Demonstration','Gar nicht'],'Bei Poom- und Dan-Anwärtern entfällt die Theorieprüfung.',{re:[/muendlich|mundlich|mund/]});
+h(9,2,PO,'Wird bei Poom- und Dan-Prüfungen eine Theorieprüfung abgelegt?','Nein, sie entfällt',['Ja, schriftlich','Ja, mündlich','Nur zum 3. Dan'],'PO Zweiter Teil § 2 Nr. 5 d.',{re:[/nein|entfall|keine/]});
+h(0,3,PO,'Unter welcher Bedingung ist ein Überspringen eines Kup-Grades möglich?','Nur vom 9. direkt zum 8. Kup in derselben Prüfung, bei überdurchschnittlichen Leistungen und eingehaltenen Vorbereitungszeiten',['Von jedem Kup auf den übernächsten bei sehr guter Leistung','Nur vom 2. direkt zum 1. Kup','Gar nicht'],'PO Zweiter Teil § 2 Nr. 12: Ein weiteres Überspringen ist nicht möglich.',{kw:[[/9/],[/8/]],need:2});
+h(0,3,PO,'Ein Anwärter verletzt sich und kann die Prüfung nicht fortsetzen. Wann gilt sie als bestanden?','Wenn bis zum Abbruch mehr als die Hälfte der vorgesehenen Prüfungsfächer mit „Ja“ bewertet wurde',['Immer, wenn er sich selbst verletzt hat','Nie, sie muss wiederholt werden','Wenn mindestens ein Fach „Ja“ erhielt'],'PO Zweiter Teil § 2 Nr. 9 a. Verletzt ein Anwärter einen anderen allein schuldhaft, wird seine Prüfung als nicht bestanden gewertet.',{re:[/mehr als die (haelfte|halfte)|ueber die halfte|uber die halfte/]});
+h(0,2,PO,'Wer entscheidet über die Reihenfolge der Prüfungsdisziplinen?','Der Prüfer',['Der Anwärter','Der Verein','Der Landesverband'],'PO Zweiter Teil § 1 Nr. 7.',{re:[/pruefer|prufer/]});
+h(0,2,PO,'Wie viele Prüfer nehmen eine Kup-Prüfung ab und welche Lizenz müssen sie mindestens haben?','Ein Prüfer allein, mindestens Prüferlizenz Stufe C',['Zwei Prüfer, Stufe B','Drei Prüfer, Stufe A','Ein Prüfer, Stufe A'],'PO Zweiter Teil § 1 Nr. 5 a.',{kw:[[/allein|ein prufer|ein pruefer|\b1\b|einer|einzel/],[/\bc\b|stufe c/]],need:2});
+h(9,2,PO,'Wie setzt sich die Prüfungskommission bei Dan-Prüfungen grundsätzlich zusammen?','Drei lizenzierte Prüfer (Lizenzstufen B und A) mit einem Vorsitzenden',['Ein Prüfer mit Lizenz C','Zwei Prüfer','Fünf Prüfer'],'PO Zweiter Teil § 1 Nr. 6. Bei Vereins- und Landes-Dan zum 1. Dan/Poom reicht ein Prüfer mit Stufe B, zum 2. und 3. Dan/Poom ein Prüfer mit Stufe A.',{re:[/\b3\b|drei/]});
+h(0,3,PO,'Wer setzt die Höhe der Prüfungsgebühr bei Kup-Prüfungen fest, und darf der Prüfer sie einziehen?','Der Verein setzt sie fest; der Prüfer darf sie weder bestimmen noch einziehen',['Der Prüfer setzt sie fest und zieht sie ein','Der DTU-Bundesreferent setzt sie fest','Der Landesverband setzt sie fest, der Prüfer zieht sie ein'],'PO Dritter Teil § 2 Nr. 5 b. Bei Nichtbestehen oder Nichtteilnahme besteht kein Erstattungsanspruch.',{re:[/verein/]});
+h(0,3,PO,'Innerhalb welcher Frist trägt der Prüfer die Kup-Prüfungsergebnisse in die DTU-Datenbank ein?','Innerhalb von 7 Tagen',['Innerhalb von 24 Stunden','Innerhalb von 4 Wochen','Innerhalb von 3 Monaten'],'PO Zweiter Teil § 1 Nr. 5 e.',{re:[/\b7\b|sieben/]});
+h(0,3,PO,'Sind Prüfungen grundsätzlich öffentlich?','Ja, sofern eine störungsfreie Durchführung gewährleistet ist',['Nein, nur für Vereinsmitglieder','Nur Dan-Prüfungen','Nur wenn der Prüfer es erlaubt'],'PO Dritter Teil § 1 Nr. 5.',{re:[/\bja\b|oeffentlich|offentlich/]});
+h(9,3,PO,'Wie viele Bonuspunkte benötigen Poom- und Dan-Anwärter, damit eine „Nein“-Bewertung neutralisiert werden kann?','Poom 1,0 Punkte, Dan 2,0 Punkte; nur eine Nein-Bewertung pro Prüfung',['Poom 2,0, Dan 1,0; beliebig viele Nein-Bewertungen','Poom 0,5, Dan 1,0; zwei Nein-Bewertungen','Immer 3,0 Punkte'],'PO Zweiter Teil § 2 Nr. 8. Es können höchstens fünf Lehrgänge berücksichtigt werden.',{kw:[[/1[,.]0|\b1\b/],[/2[,.]0|\b2\b/]],need:2});
+h(0,3,PO,'Welche Prüfungsveranstaltungen sind in der DTU möglich?','Kup (10.–1.), Vereins-Dan (1.–3.), Landes-Dan (1.–9.), Bundes-Dan (4.–9.)',['Kup (10.–1.), Landes-Dan (1.–3.), Bundes-Dan (4.–9.)','Nur Kup und Landes-Dan','Kup (9.–1.), Vereins-Dan (1.–9.), Bundes-Dan (1.–9.)'],'PO Dritter Teil § 1 Nr. 3.');
+h(0,3,PO,'Wird das Dan-Zertifikat eines Poomgrades erst nach einer neuen technischen Prüfung ausgestellt?','Nein, der Poomgrad kann nach Erreichen des Mindestalters ohne technische Prüfung umgeschrieben werden; das Datum der Poomprüfung zählt',['Ja, immer','Nur ab dem 2. Poom','Nur auf Antrag des Vereins mit Prüfung'],'PO Dritter Teil § 2 Nr. 8.',{re:[/nein|ohne/]});
+h(12,2,PO,'Welche Zulassungsvoraussetzung besteht für die Prüfung zum 6. und 7. Dan?','Gültige DOSB-Trainer-Lizenz C „Taekwondo“',['Gültige Trainer-Lizenz B','Bundes-Kampfrichter-Lizenz','Keine'],'Zum 8. Dan und höher: DOSB-Trainer-Lizenz B oder Bundes-Kampfrichter-Lizenz der DTU.',{re:[/\bc\b|trainer.?lizenz c|lizenz c/]});
+h(12,2,PO,'Welche Zulassungsvoraussetzung besteht für die Prüfung zum 8. und 9. Dan?','DOSB-Trainer-Lizenz B „Taekwondo“ oder Bundes-Kampfrichter-Lizenz der DTU',['DOSB-Trainer-Lizenz C','Eine Prüferlizenz Stufe A','WT-Kampfrichterlizenz'],'PO Erster Teil § 1 Nr. 7 c.',{kw:[[/\bb\b/],[/kampfrichter/]],need:1});
+h(12,3,PO,'Welche Anforderungen gelten für die Partner, die ein Dan-Anwärter für Prüfungsteile mitbringt?','Die Partner sollen mindestens den 2. Kup besitzen; der Anwärter verantwortet Vorbereitung und Präsentation',['Mindestens den 1. Dan','Mindestens den 5. Kup','Es gibt keine Anforderungen'],'PO Zweiter Teil § 2 Nr. 2 d.',{re:[/2\.?\s*kup/]});
+h(12,3,PO,'Worauf liegen bei den Vorführprogrammen der Lehrergrade die Bewertungsschwerpunkte?','Schwierigkeitsgrad, Ideenreichtum, Darstellungsform und Darbietung',['Nur auf der Kraftentwicklung','Auf den Wettkampferfolgen des Anwärters','Auf der Länge der Vorführung'],'PO Zweiter Teil § 2 Nr. 2 d.',{kw:[[/schwierig/],[/ideen/],[/darstellung|darbietung|praesent/]],need:2});
+/* --- Zweikampf & Technik --- */
+h(2,2,ZK,'Ab welcher Graduierung können wahlweise Hyong- oder Poomsae-Formen gelaufen werden, und was gilt bei Dan-Prüfungen?','Ab 7. Kup wahlweise Hyong oder Poomsae; bei Dan-Prüfungen nur Poomsae',['Ab 9. Kup wahlweise; Dan nur Hyong','Ab 4. Kup wahlweise; Dan beides','Nur Poomsae in allen Prüfungen'],'PO Erster Teil § 3 Nr. 3 B.',{kw:[[/7/],[/dan.*(nur )?poomsae|poomsae.*dan/]],need:1});
+h(2,2,PS,'Wie beginnt jede Form in der Prüfung?','Mit Blickrichtung zum Prüfertisch; der Anwärter sagt zuvor den Namen der Form an; der Ablauf erfolgt ohne Einzelkommandos',['Mit dem Rücken zum Prüfer; der Prüfer gibt Einzelkommandos','Seitlich zum Prüfertisch; der Prüfer sagt die Form an','Mit Blick zur Flagge ohne Ansage'],'PO Erster Teil § 3 Nr. 3 B.',{kw:[[/pruefertisch|prufertisch|pruefer|prufer/],[/ansag|nennt|sagt/],[/ohne|kommando/]],need:2});
+h(2,3,PS,'Welche Anforderungskriterien gelten laut PO für die Poomsae-Formenschule?','Korrekter Technik- und Bewegungsablauf, Einhaltung des Diagramms, Ablaufrhythmus, Kampfschrei an vorgegebener Stelle',['Nur die Geschwindigkeit des Laufs','Ausdruck, Musikalität und Kreativität','Nur die Anzahl der Bewegungen'],'PO Erster Teil § 3 Nr. 3 B: dazu kommen die allgemeingültigen Anforderungskriterien für TKD-Techniken.',{kw:[[/ablauf|bewegung/],[/diagramm/],[/rhythm/],[/kampfschrei|kihap/]],need:3});
+h(1,2,ZK,'Wie beginnt jede Übung im 1-Schritt-Kampf (Technik)?','Der Angreifer geht einen Schritt zurück und gibt gleichzeitig einen Kampfschrei ab; der Angriff erfolgt, nachdem der Verteidiger ebenfalls per Kampfschrei Bereitschaft angezeigt hat',['Der Verteidiger geht zurück, der Angreifer greift sofort an','Beide verbeugen sich und greifen gleichzeitig an','Der Prüfer gibt das Kommando „Sijak“ für jede Übung'],'PO Erster Teil § 3 Nr. 3 C c. Die Übungen werden seitlich zum Prüfertisch durchgeführt.',{kw:[[/schritt zurueck|schritt zuruck|zurueck|zuruck/],[/kampfschrei|kihap/],[/verteidiger/]],need:2});
+h(1,2,ZK,'Welche Stellung nimmt der Angreifer beim formenorientierten 1-Schritt-Kampf für einen Fauststoß ein, und welche vor einem Fußangriff?','Faust: große Vorwärtsbeugestellung (Ap Kubi); Fuß: Rückwärtsbeugestellung (Dwit Kubi)',['Faust: Dwit Kubi; Fuß: Ap Kubi','Faust: Juchum Seogi; Fuß: Moa Seogi','Beide: Naranhi Seogi'],'PO Erster Teil § 3 Nr. 3 C c (die PO schreibt „ab gubi“ und „dwit gubi“).',{kw:[[/ap.?(k|g)ubi|ab.?gubi|vorw/],[/dwit|dwi.?(k|g)ubi|ruckw|rueckw/]],need:2});
+h(2,3,ZK,'Wie viele Angriffstechniken darf der Verteidiger im 1-Schritt-Kampf als Konter höchstens zeigen, und wie zählen Doppeltechniken?','Höchstens drei; Doppeltechniken zählen als eine Technik',['Höchstens fünf; Doppeltechniken zählen doppelt','Höchstens zwei; Doppeltechniken zählen als eine','Beliebig viele'],'PO Erster Teil § 3 Nr. 3 C c und 4 E d. Halten, Greifen, Werfen und SV-Techniken sind im 1-Schritt-Kampf nicht zulässig.',{kw:[[/\b3\b|drei/],[/doppel.*(1|ein)|(1|ein).*doppel/]],need:2});
+h(2,3,ZK,'Wohin richtet der Angreifer beim formenorientierten 1-Schritt-Kampf seine Fauststöße und Fußangriffe?','Faust zur Körpermitte (Solar Plexus) oder zum Kopf (Nase); Fußangriffe mindestens zur Körpermitte',['Nur zum Kopf','Faust zur Körpermitte, Fuß zum Knie','Immer zum Bein'],'PO Erster Teil § 3 Nr. 3 C c.',{kw:[[/solar|koerpermitte|korpermitte|magen/],[/nase|kopf|gesicht/]],need:1});
+h(3,2,ZK,'Was unterscheidet den 2-Schritt-Kampf vom 1-Schritt-Kampf?','Der Angreifer geht zwei Schritte nach vorne und greift bei jedem Schritt an; der Verteidiger kontert erst nach dem letzten Angriff',['Der Verteidiger greift zuerst an','Es gibt zwei Verteidiger','Der Angriff erfolgt nur mit Fußtechniken'],'PO Erster Teil § 3 Nr. 3 D; beim 3-Schritt-Kampf geht der Angreifer drei Schritte vor.',{kw:[[/zwei|2/],[/jeden schritt|bei jedem|je schritt/],[/nach dem letzten|letzten angriff|erst nach/]],need:2});
+h(5,3,PS,'Wie läuft eine Poomsae-Applikation praktisch ab?','In drei Varianten: allein nach WOP-Regeln, mit Partnern in gemäßigtem Tempo, mit Partnern in realitätsnaher Geschwindigkeit bei leichtem Kontakt',['Nur einmal mit Partnern in vollem Tempo','Zweimal allein, einmal mit Partner','Nur als Erklärung ohne Partner'],'PO Erster Teil § 3 Nr. 3 F b. Die Partner müssen Schutzausrüstung tragen, dem Anwärter ist sie freigestellt.',{kw:[[/allein|wop/],[/gemaessigt|gemass|langsam/],[/realit|leichtem kontakt|schnell/]],need:2});
+h(5,2,PS,'Woraus wählt der Anwärter die Sequenzen für die Poomsae-Applikation aus?','Aus den Poomsae-Formen der bisherigen Prüfungsprogramme',['Aus beliebigen Hyong-Formen','Aus den Taegeuk-Formen, die der Prüfer vorgibt','Aus einer freien Choreografie'],'PO Erster Teil § 3 Nr. 3 F d.',{re:[/bisherig|vorprogramm|poomsae/]});
+h(0,2,ZK,'Worum geht es beim Pratzensparring?','Von Angriffstechniken gegen ruhende Ziele bis zu Kombinationen auf 2 Pratzen, bei denen der Pratzenhalter Distanz und Tempo variiert',['Um Kämpfe mit vollem Körperkontakt','Um das Brechen von Brettern','Um die Abwehr von Stockangriffen'],'PO Erster Teil § 3 Nr. 4 B. Kriterien: Variabilität, Schnelligkeit, Distanzeinschätzung, Treffsicherheit, Krafteinwirkung.',{kw:[[/pratze/],[/kombination|mehrfach|variab|distanz|tempo/]],need:1});
+h(0,2,ZK,'Worauf kommt es beim Step-Sparring an?','Auf flexible Bewegung in Kampfhaltung, Distanzwahrung und Schrittvielfalt',['Auf harte Treffer','Auf das Brechen von Brettern','Auf feste Formen'],'PO Erster Teil § 3 Nr. 4 A. Das Spektrum reicht von Bewegungen „auf der Linie“ bis zur freien Bewegung im Raum.',{kw:[[/distanz|abstand/],[/bewegung|schritt|flexib/]],need:1});
+h(5,2,ZK,'Was gehört beim Situations-Sparring zwingend zur Ausrüstung und zum Kontakt?','Persönliche vollständige Schutzausrüstung; leichter Körperkontakt ohne Kopftreffer',['Keine Schutzausrüstung; voller Kontakt','Nur Mundschutz; leichter Kontakt mit Kopftreffern','Brustschutz allein; harter Kontakt'],'PO Erster Teil § 3 Nr. 4 C a.',{kw:[[/schutz/],[/leicht/]],need:2});
+h(5,3,ZK,'Nenne zwei Beispiele für Sequenzen im Situations-Sparring.','z. B. Angriff–Konter (1-1), Angriff–2 Konter (1-2), 2 Angriffe–Konter (2-1), 2 Angriffe–2 Konter (2-2), Angriff–Konter–Gegenkonter (1-1-1)',['Nur 1-1 und 3-3','Angriff–Block–Pause','Konter vor Angriff'],'PO Erster Teil § 3 Nr. 4 C b.',{re:[/1.?1|1.?2|2.?1|2.?2|konter/]});
+h(5,2,ZK,'Was unterscheidet das Sparring mit Aufgabenstellung vom Situations-Sparring?','Dem Anwärter werden technische, strategische oder taktische Aufgaben vorgegeben, die er selbstständig umsetzt',['Es wird ohne Schutzausrüstung geführt','Es hat keine Regeln','Es besteht nur aus Pratzenarbeit'],'PO Erster Teil § 3 Nr. 4 D.',{re:[/aufgabe|vorgab|taktisch|strateg/]});
+h(1,2,ZK,'Was unterscheidet das Freie Sparring vom Sparring mit Aufgabenstellung?','Beim Freien Sparring gibt es keine inhaltlichen Vorgaben; die Kontrahenten gestalten den Kampf selbst',['Es wird ohne Kampfleiter geführt','Es wird mit vollem Kontakt und Kopftreffern geführt','Es dauert immer drei Runden'],'PO Erster Teil § 3 Nr. 4 F. Es geht nicht um einen Titel, sondern ob der Anwärter die Anforderungen bewältigt.',{re:[/keine.*(vorgab|inhalt)|selbst|frei/]});
+h(1,3,ZK,'Wie beginnt das Freie Sparring in der Prüfung?','Beide stehen seitlich zum Prüfertisch, setzen einen Fuß zurück, nehmen Kampfstellung ein und geben einen Kampfschrei ab; der Kampf beginnt auf Freigabe des Kampfleiters',['Auf das Kommando „Sijak“ des Anwärters','Nach einer Verbeugung zum Prüfer ohne Kampfschrei','Mit einem Schritt vor und Verbeugung'],'PO Erster Teil § 3 Nr. 4 F d.',{kw:[[/seitlich/],[/kampfschrei|kihap/],[/kampfleiter|freigabe/]],need:2});
+/* --- Bruchtest --- */
+h(5,1,BR,'Aus welchem Material bestehen Bruchtest-Bretter laut PO und wie groß sind sie?','Fichtenholzbretter, ca. 30 × 30 cm',['Buchenholz, 20 × 20 cm','Kiefer, 40 × 40 cm','Ziegel oder Fichtenbretter nach Wahl'],'PO Erster Teil § 3 Nr. 5 b.',{kw:[[/fichte/],[/30/]],need:1});
+h(5,2,BR,'Welche Brettstärke gilt für Männer von 18 bis 39 Jahren?','2,5 cm',['1,5 cm','2,0 cm','3,0 cm'],'Frauen 18–39: 2,0 cm; Jugendliche 15–17 sowie Frauen und Männer ab 40: 1,5 cm. Bei 2,5 und 2,0 cm wird eine Toleranz von 0,2 cm akzeptiert.',{re:[/2[,.]5/]});
+h(5,2,BR,'Welche Brettstärke gilt für Frauen von 18 bis 39 Jahren?','2,0 cm',['1,5 cm','2,5 cm','3,0 cm'],'Männer 18–39: 2,5 cm. Toleranz: 0,2 cm.',{re:[/2[,.]0|\b2\b\s*cm|zwei/]});
+h(5,2,BR,'Welche Brettstärke gilt für Jugendliche von 15 bis 17 sowie für Erwachsene ab 40 Jahren?','1,5 cm',['2,0 cm','2,5 cm','1,0 cm'],'PO Erster Teil § 3 Nr. 5 b.',{re:[/1[,.]5/]});
+h(5,1,BR,'Dürfen Kinder und Jugendliche unter 15 Jahren Bruchtests machen?','Nein, sie wählen stattdessen eine Option aus einem der Wahlbereiche',['Ja, mit 1,5 cm Brettern','Ja, aber nur mit Fußtechniken','Nur mit Zustimmung der Eltern'],'PO Erster Teil § 3 Nr. 5 a.',{re:[/nein|keine/]});
+h(5,3,BR,'Was darf ein Anwärter über 40 Jahren anstelle einer vorgeschriebenen Sprungtechnik wählen?','Einen Bruchtest ohne Sprung',['Gar nichts, die Sprungtechnik ist Pflicht','Einen Bruchtest mit zwei Brettern','Eine Poomsae'],'PO Erster Teil § 3 Nr. 5 a.',{re:[/ohne sprung|kein.*sprung/]});
+h(5,3,BR,'Was ist eine Bruchtest-Kombination laut PO?','Mindestens 2 Bruchtests, zwischen denen höchstens zwei Schritte liegen und keine Konzentrationsphase oder Verzögerung erkennbar ist',['Zwei Bretter, die gleichzeitig gebrochen werden','Mindestens 3 Bruchtests mit freier Pause','Ein Bruchtest mit Hand und Fuß nacheinander'],'PO Erster Teil § 3 Nr. 5 f. Die Kombination wird als eine Einheit bewertet.',{kw:[[/2|zwei/],[/schritt/],[/konzentration|verzoeger|verzoger|fluss/]],need:2});
+h(9,3,BR,'In welcher Höhe erfolgt ein Sprungbruchtest nach oben in der Regel mindestens?','Mindestens Kopfhöhe (Gesichtsmitte) des Anwärters',['Brusthöhe','Hüfthöhe','Scheitelhöhe plus 20 cm'],'PO Erster Teil § 3 Nr. 5 g.',{re:[/kopf|gesicht/]});
+h(5,2,BR,'Wer ist für den Aufbau des Bruchtests und die Einweisung der Bretthalter verantwortlich?','Der Anwärter (bei Kup-Graden und Jugendlichen sind Hilfestellungen möglich)',['Der Prüfer','Der Verein','Der Landesverband'],'Vor der Durchführung sagt der Anwärter die Technik an. PO Erster Teil § 3 Nr. 5 e.',{re:[/anwaerter|anwarter|pruefling|prufling/]});
+h(5,2,BR,'Was gilt, wenn der Bruchtest beim ersten Mal nicht gelingt?','Der Anwärter kann einen weiteren Versuch unternehmen (auch mit anderer Technik); der bessere Versuch wird gewertet',['Die Prüfung ist beendet','Es ist kein zweiter Versuch erlaubt','Der Prüfer wählt eine leichtere Technik'],'PO Zweiter Teil § 2 Nr. 5 b.',{re:[/weiter|zweit|erneut|besser/]});
+h(12,3,BR,'Wie viele Bruchtests sind bei Lehrergraden höchstens zulässig, und wie müssen mehrere ausgeführt werden?','Bis zu 4; mehrere müssen als Kombination ausgeführt werden',['Bis zu 2; einzeln','Bis zu 6; beliebig','Genau 3 als Kombination'],'PO Erster Teil § 3 Nr. 5 h.',{kw:[[/4|vier/],[/kombination/]],need:2});
+h(9,3,BR,'Auf welche Brettstärke darf bei Dan-Prüfungen mit hohem Schwierigkeitsgrad reduziert werden?','Männer bis auf 2 cm, Frauen bis auf 1,5 cm',['Männer 1,5 cm, Frauen 1,0 cm','Männer 2,5 cm, Frauen 2,0 cm','Gar nicht reduzierbar'],'PO Erster Teil § 3 Nr. 5 b.',{kw:[[/2/],[/1[,.]5/]],need:2});
+/* --- Selbstverteidigung --- */
+h(2,2,SV,'Wie ist die „Lange Distanz“ in der SV laut PO definiert?','Der Angreifer kann den Verteidiger nur mit Fußtritten erreichen',['Der Angreifer erreicht den Verteidiger mit Faustschlägen','Abstand von 30 cm bis Körperkontakt','Der Angreifer liegt am Boden'],'PO Erster Teil § 3 Nr. 6 e.',{re:[/fusstritt|fustritt|tritt|fuss/]});
+h(2,2,SV,'Wie ist die „Mittlere Distanz“ definiert?','Der Angreifer kann den Verteidiger mit Faustschlägen erreichen',['Nur mit Fußtritten','30 cm bis Körperkontakt','Bodenlage'],'PO Erster Teil § 3 Nr. 6 e.',{re:[/faust|schlag|hand/]});
+h(2,3,SV,'Wie ist die „Nahe Distanz“ definiert?','Von 30 cm Abstand bis Körperkontakt',['Alles unter 1 Meter','Nur Körperkontakt','Ab 1 Meter bis 2 Meter'],'PO Erster Teil § 3 Nr. 6 e. Daneben gibt es die Boden-Grundsituationen.',{re:[/30/]});
+h(1,2,SV,'Welche Bedeutung hat die Fallschule in der PO?','Sie dient der Verletzungsprävention und kann auf Verlangen des Prüfers in vollem Umfang abgeprüft werden',['Sie ist nur für Dan-Prüfungen relevant','Sie ist Teil des Bruchtests','Sie wird nur bei Kindern geprüft'],'PO Erster Teil § 3 Nr. 6 d.',{re:[/verletz|praevention|pravention|schutz/]});
+h(3,2,SV,'Unter welchem rechtlichen Aspekt stehen die SV-Übungen laut PO?','Notwehrrecht und Verhältnismäßigkeit der Mittel; Eigensicherung hat besondere Bedeutung',['Nur unter dem Aspekt des Wettkampfrechts','Unter dem Strafrecht ohne Einschränkung','Unter dem Hausrecht des Dojang'],'PO Erster Teil § 3 Nr. 6 b.',{re:[/notwehr|verhaeltnis|verhaltnis/]});
+h(5,2,SV,'Welche Übungswaffen sind in der SV zulässig?','Nur gefahrlose Übungswaffen (z. B. Stock und Messer); spitze, scharfe oder verletzungsträchtige Gegenstände sind verboten',['Echte Messer nach Prüferfreigabe','Nur Holzschwerter','Jede Waffe, wenn der Partner Schutz trägt'],'PO Erster Teil § 3 Nr. 6 f.',{re:[/gefahrlos|uebungs|ubungs|stock|messer/]});
+h(3,2,SV,'Wird bei Jugendlichen unter 15 Jahren die Selbstverteidigung gegen Waffenangriffe geprüft?','Nein',['Ja, nur mit Stock','Ja, nur mit Messer','Ja, mit Schutzausrüstung'],'PO Erster Teil § 3 Nr. 6 a.',{re:[/nein|nicht|keine/]});
+h(12,2,SV,'Wie lange darf das selbst erstellte SV-Programm bei Lehrergraden höchstens dauern?','3 Minuten',['1 Minute','5 Minuten','10 Minuten'],'PO Erster Teil § 3 Nr. 6 g; die Vorführung erfolgt mit eigenen Partnern.',{re:[/\b3\b|drei/]});
+h(3,2,SV,'Wer bestimmt bei mehreren Angreifern in der SV die Positionen?','Der Anwärter',['Der Prüfer','Der Kampfleiter','Das Los'],'PO Erster Teil § 3 Nr. 6 c. SV-Übungen beginnen seitlich zum Prüfertisch.',{re:[/anwaerter|anwarter|prufling|pruefling/]});
+/* --- Theorie & Geist --- */
+h(0,1,TH,'Was bedeutet „Taekwondo“ wörtlich?','Weg des Fußes und der Faust (Tae = Fuß, Kwon = Faust, Do = Weg)',['Weg der leeren Hand','Kunst des Schwertes','Weg des Kampfes ohne Gewalt'],'Tae = Fuß (Treten), Kwon = Faust (Schlagen), Do = Weg (Lebensweg, Philosophie).',{kw:[[/fuss|fus/],[/faust|hand/],[/weg/]],need:2});
+h(0,1,TH,'Welche Bedeutung hat der Kampfschrei (Kihap)?','Er bündelt die Energie, unterstützt Atmung und Körperspannung und zeigt Entschlossenheit',['Er dient nur der Einschüchterung','Er ist ein Zeichen für Aufgabe','Er ist eine Begrüßung des Prüfers'],'Kampfschrei zählt laut PO zu den physischen Voraussetzungen (z. B. Atmung, Körperspannung).',{re:[/energie|konzentr|atmung|spannung|entschlossen/]});
+h(0,1,TH,'Was ist eine Poomsae?','Ein festgelegter Ablauf von Abwehr- und Angriffstechniken gegen imaginäre Gegner (Form)',['Ein Wettkampf gegen einen Partner','Ein Bruchtest','Ein Gürtelknoten'],'Poomsae = Formenlauf; Diagramm, Rhythmus und Kampfschrei werden bewertet.',{re:[/form|ablauf|imaginaer|imaginar|gegner|lauf/]});
+h(4,2,TH,'Nenne mindestens drei der fünf Grundprinzipien (Tenets) des Taekwondo.','Yeui (Höflichkeit), Yeomchi (Integrität), Innae (Ausdauer), Geukgi (Selbstbeherrschung), Baekjeol Bulgul (unbeugsamer Geist)',['Yeui, Yeomchi, Hansu, Jitae, Ilyeo','Yin, Yang, Geon, Gon, Gam','Charyeot, Junbi, Sijak, Geuman, Baro'],'Die Tenets sind Teil der „Geistigen Hintergründe“ (5. Kup).',{kw:[[/hoeflich|hoflich|yeui|ye ui|courtesy|respekt/],[/integrit|yeomchi|ehrlich|anstand/],[/ausdauer|innae|durchhalt|hartnaeck|hartnack/],[/selbstbeherrsch|selbstkontroll|geukgi|kukki|guk ?gi/],[/unbeug|unbezwing|unbesieg|baekjeol|bulgul|unbeug|unerschuett|unerschutt/]],need:3});
+h(4,2,TH,'Was bedeutet „Taegeuk“?','Urprinzip (das große Äußerste): die Harmonie von Yin und Yang (Eum und Yang)',['Wasserfall','Weiße Hand','Drachenfeder'],'Taegeuk (auch im Staatswappen/der Flagge Koreas) ist das Symbol für Harmonie der Gegensätze; die acht Formen stehen für die acht Trigramme.',{re:[/yin|yang|eum|urprinzip|harmonie|gegensatz/]});
+h(0,2,TH,'Wofür steht Dojang wörtlich?','Ort, an dem der „Weg“ (Do) geübt wird: die Trainingshalle',['Der Gürtel','Das Kommando zum Beginn','Die Prüfungsordnung'],'Dojang = Übungsstätte des Weges.',{re:[/ort|halle|uebungs|ubungs|training|weg/]});
+h(4,3,TH,'Nenne drei physische Voraussetzungen für wirksame Techniken laut PO.','z. B. Atmung, Gegenzug/Gegenbewegung, Hüfteinsatz, Körperspannung/-entspannung, Gleichgewicht, Schnelligkeit, Beweglichkeit, Reaktionsfähigkeit, Blickrichtung, Kampfschrei, Kraftausdauer',['Nur Körpergröße, Gewicht und Alter','Gürtelfarbe, Kondition, Bruchtestbretter','Schutzausrüstung, Dobok, Sportpass'],'PO Erster Teil § 3 Nr. 1 b.',{kw:[[/atm/],[/gegenzug|gegenbewegung/],[/huef|huf/],[/spannung|entspann/],[/gleichgewicht/],[/schnell|dynamik/],[/beweglich/],[/reaktion/],[/blick/],[/kampfschrei|kihap/],[/ausdauer|leistungsf/]],need:3});
+h(4,3,TH,'Nenne drei technisch-motorische Prinzipien laut PO.','z. B. zweckmäßige, aufeinander abgestimmte Bewegungsabläufe, Koordination, Effizienz und Effektivität, Kraftwirkung, Brennpunkt',['Gürtelfarbe, Vorbereitungszeit, Prüfungsgebühr','Nur Schnelligkeit','Nur Kraft'],'PO Erster Teil § 3 Nr. 1 a.',{kw:[[/bewegungsablauf|ablaeufe|ablauf|abgestimmt/],[/koordination/],[/effizien/],[/effektiv/],[/kraftwirkung|kraft/],[/brennpunkt/]],need:3});
+h(4,3,TH,'Nenne drei mentale Grundlagen laut PO.','z. B. Selbstdisziplin, Souveränität, Entschlossenheit, Zielgerichtetheit, Kampfgeist, Konzentration, Flexibilität, Harmonie, Respekt gegenüber dem Partner',['Reaktionsvermögen, Atmung, Hüfteinsatz','Gleichgewicht, Schnelligkeit, Dynamik','Körpergröße, Statur, Alter'],'PO Erster Teil § 3 Nr. 1 c.',{kw:[[/disziplin/],[/souver/],[/entschlossen/],[/zielgerichtet|ziel/],[/kampfgeist/],[/konzentration/],[/flexib/],[/harmonie/],[/respekt/]],need:3});
+h(5,2,TH,'Wozu dient die Kenntnis der vitalen Körperpunkte im SV- und Kampfkontext?','Techniken zielgerichtet gegen empfindliche Punkte zu richten und gleichzeitig Verletzungen beim Training zu vermeiden',['Um Gegner zu verletzen','Um Bruchtests zu bestehen','Um die Gürtelfarbe zu bestimmen'],'Zum 4. Kup wird die „Kenntnis der vitalen Körperpunkte“ verlangt; Angriffstechniken im 1-Schritt-Kampf sind gegen einen vitalen Punkt zu richten.',{re:[/vital|empfindlich|wirkung|ziel|verletz/]});
+h(8,2,TH,'Welche zusätzlichen Theorieinhalte kommen zum 1. Kup hinzu?','Organisation und Aufbau der DTU und des zuständigen Landesverbands sowie Grundkenntnisse zur Trainingslehre',['Notwehrrecht','Technikprinzipien','Vitale Körperpunkte'],'PO Erster Teil § 2, 1. Kup.',{kw:[[/dtu|landesverband|\blv\b|organisation|aufbau/],[/trainingslehre/]],need:1});
+h(1,2,TH,'Welche Theorie kommt zum 8. Kup hinzu?','Wettkampfregeln nach WOZ oder WOP',['Notwehrrecht','Kenntnis der vitalen Körperpunkte','Technikprinzipien'],'WOZ = Wettkampfordnung für Zweikampf, WOP = Wettkampfordnung für Poomsae-Technik.',{re:[/wett.?kampf|woz|wop/]});
+/* --- Poomsae allgemein --- */
+h(9,2,PS,'Welche Pflichtform gilt neben einer Form aus dem Vorprogramm (nach Losvorgabe) zum 1. Dan?','Taegeuk Pal Jang (8. Form)',['Taegeuk Chil Jang','Koryeo','Keumgang'],'PO: 1. Poom/Dan = 1 Form aus dem Vorprogramm nach Losvorgabe + Taegeuk Pal Jang.',{fz:['Taegeuk Pal Jang','Pal Jang','Palgwe Pal Jang'],re:[/pal ?jang|8\.? ?form|achte/]});
+h(9,2,PS,'Wie wird die Vorprogramm-Form bei Prüfungen zum 1. bis 3. Dan bestimmt, wie bei den Lehrergraden ab 4. Dan?','1.–3. Dan: nach Losvorgabe; 4. und 5. Dan: nach eigener Wahl',['Immer nach eigener Wahl','Immer nach Losvorgabe','Vom Landesverband festgelegt'],'PO § 2, Pflichtprogramm Technik.',{kw:[[/los/],[/eigen|wahl/]],need:2});
+/* --- Verband & Struktur --- */
+const VB='Verband & Struktur';
+h(8,2,VB,'In welchen Dachverbänden ist die DTU Mitglied?','DOSB (Deutscher Olympischer Sportbund), ETU (Europa) und WT (Welt)',['Nur im DOSB','DOSB und ITF','ETU und ITF'],'Die DTU (gegründet 1981) ist der größte Taekwondo-Verband in Deutschland und der einzige, den der DOSB für die Olympischen Spiele zulässt.',{kw:[[/dosb/],[/etu|europa/],[/\bwt\b|world|welt/]],need:2});
+h(8,2,VB,'Wofür steht „WT“?','World Taekwondo, der Weltverband',['Western Taekwondo','World Taekwondo Technique','Weltturnierverband'],'WT ist der Weltverband; die ETU (Europäische Taekwondo Union) ist der europäische Dachverband.',{re:[/world/]});
+h(8,3,VB,'In welchem Jahr wurde die Deutsche Taekwondo Union gegründet?','1981',['1966','1972','1990'],'Angabe nach öffentlich zugänglicher Verbandsinformation (u. a. Wikipedia).',{re:[/1981/]});
+h(8,3,VB,'Wie viele Landesverbände (LV) hat die DTU laut ihrer Website?','18',['12','16','20'],'Angabe der DTU-Website (abgerufen im Oktober 2026); die Zahl kann sich ändern. Die Landesverbände regeln u. a. Kup-Prüfungen, den Bezug von Prüfungsmaterial und Landes-Danprüfungen.',{re:[/\b18\b|achtzehn/]});
+h(8,2,VB,'Welche Rolle hat der Kukkiwon für die Formen?','Das Welt-Taekwondo-Hauptquartier in Seoul; seine Vorgaben und Veröffentlichungen sind Maßstab für den Ablauf der Formen',['Der Name eines Wettkampfsystems der ETU','Der deutsche Prüfungsausschuss','Das Prüfungsorgan der DTU für Dan-Grade'],'PO Erster Teil § 3 Nr. 3 B: Ablauf, Technikausführung und Kampfschrei orientieren sich am DTU-Standard und an den Vorgaben des Kukkiwon.',{re:[/seoul|hauptquartier|welt/]});
+h(8,2,VB,'Wer übt innerhalb der DTU die Fachaufsicht und Kontrolle über das Prüfungs- und Passwesen aus?','Der Bundesreferent für das Prüfungswesen (BPR)',['Der DTU-Präsident persönlich','Der jeweilige Landesverbandspräsident','Der Bundestrainer'],'PO Dritter Teil § 1 Nr. 2 a: Der BPR überwacht die Einhaltung der Ordnungen und regelt Sonderfälle. Er darf jederzeit Auskünfte von den LV verlangen.',{re:[/bpr|bundesreferent/]});
+h(8,2,VB,'Wem obliegt laut PO die Prüfungshoheit?','Der DTU',['Dem Landesverband','Dem ausrichtenden Verein','Dem Prüfer'],'PO Dritter Teil § 1 Nr. 2 a.',{re:[/dtu|deutsche taekwondo/]});
+h(8,3,VB,'Wer entscheidet über Angelegenheiten, die in der PO nicht geregelt sind?','Der BPR; er kann dabei Verfahrensabläufe vorgeben',['Das DTU-Präsidium','Der Landesverband','Die Mitgliederversammlung (MV)'],'PO Dritter Teil § 1 Nr. 2 e.',{re:[/bpr|bundesreferent/]});
+h(8,3,VB,'Wer entscheidet bei Besonderheiten während einer Landes-Danprüfung, die weder die PO noch das sonstige Regelwerk klärt?','Der LPR (Landesprüfungsreferent), im Sinne des Anwärters',['Der BPR','Der Prüfer allein','Der Landesverband per Abstimmung'],'PO Dritter Teil § 1 Nr. 2 d: Kup- und Vereins-Danprüfungen: Prüfer bzw. Kommissionsvorsitzender; Landes-Danprüfungen: LPR; Bundes-Danprüfungen: BPR. Immer im Sinne des Anwärters.',{re:[/lpr|landespruef|landesprüf|landesreferent/]});
+h(8,3,VB,'Wer entscheidet bei einer Bundes-Danprüfung über Besonderheiten, die die PO nicht regelt?','Der BPR',['Der LPR','Der Prüfer allein','Der DTU-Vizepräsident'],'PO Dritter Teil § 1 Nr. 2 d, jeweils im Sinne des Anwärters.',{re:[/bpr|bundesreferent/]});
+h(8,3,VB,'Kann der BPR Prüfungsaufgaben an die Landesverbände übertragen?','Ja: Kontrolle und das Recht, Landes-Danprüfungen sowie Kup- und Vereins-Danprüfungen durchzuführen, kann er auf LV bzw. Vereine übertragen; im begründeten Fall zieht er sie wieder an sich',['Nein, alle Prüfungen führt er selbst durch','Nur Bundes-Danprüfungen','Nur Kup-Prüfungen, ohne Rückholmöglichkeit'],'PO Dritter Teil § 1 Nr. 2 b.',{re:[/\bja\b|uebertr|ubertr|delegier/]});
+h(8,3,VB,'Was besagt das „Konkurrenzverbot“ in der PO?','LV und ihre Mitglieder dürfen außerhalb der Vorgaben der PO keine TKD-Prüfungen veranstalten oder durchführen',['Prüfer dürfen nicht für mehrere Vereine prüfen','Zwei Vereine dürfen nicht am gleichen Tag prüfen','Anwärter dürfen nicht bei zwei Verbänden prüfen'],'PO Dritter Teil § 1 Nr. 6.',{re:[/ausser|nicht.*pruef|nicht.*pruf|keine.*pruef|keine.*pruf/]});
+h(8,2,VB,'Wo werden Sportpässe, Prüfungslisten, Urkunden und Prüfungsmarken bezogen?','Beim zuständigen Landesverband; der Erwerb bei einem anderen LV ist nicht zulässig',['Beim Verein','Beim Prüfer','Beim Weltverband WT'],'PO Dritter Teil § 2 Nr. 3. Es dürfen nur die von der DTU bestimmten Dokumente und Muster verwendet werden.',{re:[/landesverband|\blv\b/]});
+h(8,3,VB,'Wer stellt den Landesverbänden die Dan-Urkunden zur Verfügung?','Die DTU; die Kosten richten sich nach der FGO',['Der Weltverband WT','Der jeweilige Verein','Der Kukkiwon'],'PO Dritter Teil § 2 Nr. 4 a. Nachbestellungen von Urkunden und Chipkarten beantragt man beim BPR gegen Gebühr.',{re:[/dtu|deutsche taekwondo/]});
+h(8,3,VB,'Wie kommen Kup-Urkunden und Prüfungsmarken zu den Vereinen?','Die DTU stellt sie den LV kostenpflichtig zur Verfügung; die LV beliefern ihre Vereine und dürfen einen Aufschlag erheben',['Der Prüfer bringt sie mit','Die Vereine bestellen direkt bei der DTU','Der Prüfer druckt sie selbst aus'],'PO Dritter Teil § 2 Nr. 5 a.',{kw:[[/dtu/],[/landesverband|\blv\b/]],need:2});
+h(8,3,VB,'Wer zahlt die Aufwandsentschädigung der Prüfer bei Kup- und Vereins-Danprüfungen, bei Landes-Danprüfungen und bei Bundes-Danprüfungen?','Verein, LV, DTU (in dieser Reihenfolge)',['LV, DTU, Verein','DTU, DTU, LV','Verein, Verein, DTU'],'PO Dritter Teil § 2 Nr. 7.',{kw:[[/verein/],[/\blv\b|landesverband/],[/dtu/]],need:3});
+h(8,3,VB,'Welche Ehrendangrade erkennt die DTU an?','Die von der ETU und der WT verliehenen; Ehrendane anderer Organisationen sind unbeachtlich',['Alle Ehrendane weltweit','Nur die von der DTU selbst verliehenen','Die von Vereinen verliehenen'],'PO Dritter Teil § 1 Nr. 1 b: Die Verleihung ist in der EO (Ehrenordnung) geregelt.',{kw:[[/etu|europ/],[/\bwt\b|world/]],need:1});
+h(8,2,VB,'Wer darf Kupgrade in den DTU-Sportpass eintragen?','Der BPR, vom LV beauftragte Personen und Prüfer mit gültiger Prüferlizenz',['Jeder Trainer','Jeder Vereinsvorstand','Nur der Anwärter selbst'],'PO Dritter Teil § 2 Nr. 2 a.',{kw:[[/bpr/],[/pruef|pruf/],[/\blv\b|landesverband|beauftragt/]],need:2});
+h(9,3,VB,'Wer darf Poom- und Dangrade in den DTU-Sportpass eintragen?','Der BPR, vom LV beauftragte Personen, bei Vereins-Danprüfungen der Kommissionsvorsitzende bzw. der jeweilige Prüfer',['Jeder Vereinstrainer','Nur der Landesverbandsvorstand','Jeder Prüfer mit Lizenz C'],'PO Dritter Teil § 2 Nr. 2 b. Bei Danprüfungen werden keine Prüfungsmarken eingeklebt.',{kw:[[/bpr/],[/kommission|vorsitz/],[/\blv\b|landesverband|beauftragt/]],need:2});
+h(8,2,VB,'Wo werden erworbene Graduierungen zentral erfasst, und ab wann werden sie wirksam?','In der DTU-Verwaltungsdatenbank (DB); mit dem Eintrag, und zwar rückwirkend ab dem Prüfungstag',['Beim Kukkiwon; ab Ausstellung der Urkunde','Beim DOSB; nach 3 Wochen','Im Verein; ab Eintrag im Sportpass'],'PO Dritter Teil § 2 Nr. 1.',{re:[/datenbank|\bdb\b/]});
+h(9,3,VB,'Welche Anforderung gilt an den Kommissionsvorsitzenden und die Beisitzer bei Landes- und Bundes-Danprüfungen?','Vorsitzender mindestens den angestrebten Dangrad; Beisitzer mindestens den Dangrad, den der Prüfling zum Prüfungszeitpunkt innehat',['Alle Prüfer mindestens 5. Dan','Vorsitzender mindestens 1. Dan über dem Prüfling, Beisitzer gleichrangig','Beliebige Prüfer mit Lizenz A'],'PO Zweiter Teil § 1 Nr. 6 b.',{kw:[[/angestreb/],[/innehat|aktuell|zum zeitpunkt|besitzt/]],need:1});
+h(9,3,VB,'Wer kann bei Ausfall eines Kommissionsmitglieds (bis zum 3. Dan) einspringen?','Das für das Prüfungswesen zuständige Vorstandsmitglied des LV (unabhängig vom Dangrad); der BPR jederzeit; steht keiner zur Verfügung, fällt die Prüfung aus',['Jeder anwesende Prüfer mit Lizenz C','Der Trainer des Anwärters','Ein weiterer Anwärter'],'PO Zweiter Teil § 1 Nr. 6 c.',{kw:[[/vorstand|\blv\b|landesverband/],[/bpr/]],need:1});
+h(8,2,VB,'Dürfen DTU-Prüfungen im Ausland stattfinden?','Ja, bis zum 3. Dan, im europäischen Ausland und mit DTU-lizenzierten Prüfern',['Nein, nur in Deutschland','Ja, weltweit alle Grade','Ja, nur bis zum 1. Kup'],'PO Dritter Teil § 1 Nr. 4: bei Trainingsmaßnahmen; Abwicklung über die DTU-Datenbank.',{re:[/europ/]});
+h(8,3,VB,'Welche Fristen gelten für Kup-Prüfungen im Ausland?','Information und Genehmigung des LV spätestens 3 Monate vorher; Teilnehmer und Prüfer spätestens 14 Tage vorher melden',['Anzeige 4 Wochen vorher beim BPR','Keine Fristen','Anzeige 1 Jahr vorher'],'PO Dritter Teil § 1 Nr. 4. Bei Danprüfungen ist der BPR zuständig, und ein von ihm beauftragter Offizieller muss anwesend sein.',{kw:[[/3 monat|drei monat/],[/14 tage|vierzehn/]],need:1});
+h(9,3,VB,'Wer muss bei Dan-Prüfungen im Ausland anwesend sein?','Ein vom BPR beauftragter Offizieller',['Der DTU-Präsident','Ein Vertreter der WT','Der Landesverbandspräsident'],'PO Dritter Teil § 1 Nr. 4 d.',{re:[/bpr|offiziell/]});
+h(9,3,VB,'Wer entscheidet, ob Vereins-Danprüfungen zum 2. und 3. Dan/Poom angeboten werden?','Der jeweilige Landesverband für seinen Zuständigkeitsbereich',['Der DTU-Präsident','Der ausrichtende Verein','Der BPR'],'PO Dritter Teil § 1 Nr. 3. Die Entscheidung ist in geeigneter Form zu veröffentlichen.',{re:[/landesverband|\blv\b/]});
+h(8,3,VB,'Was gilt bei Verlust des DTU-Passes?','Prüfungsmarken müssen nicht nachgeklebt werden; die Eintragung erfolgt ausschließlich durch den LPR, wenn ein DB-Eintrag oder lückenloser Urkundennachweis vorliegt',['Alle Prüfungen müssen wiederholt werden','Der Verein trägt die Grade neu ein','Die Graduierung verfällt'],'PO Dritter Teil § 2 Nr. 9.',{re:[/lpr|landespruef|landesprüf|nicht nachge|datenbank/]});
+h(8,3,VB,'Wer kann Sonderregelungen zur Graduierung für Sportler des Bundeskaders treffen?','Das Präsidium (damit sie an internationalen Turnieren teilnehmen können)',['Der BPR allein','Der Landesverband','Der Prüfer'],'PO Dritter Teil § 1 Nr. 1 c. In anderen begründeten Einzelfällen entscheidet der BPR im Benehmen mit dem zuständigen DTU-Vizepräsidenten.',{re:[/praesidium|prasidium/]});
+h(8,3,VB,'Wer kann zeitlich befristete Ausnahmen von der Präsenzpflicht bei Prüfungen beschließen?','Das Präsidium',['Der Prüfer','Der BPR allein','Der Verein'],'PO Zweiter Teil § 2 Nr. 1 a: Grundsätzlich müssen Prüfer und Anwärter physisch anwesend sein.',{re:[/praesidium|prasidium/]});
+h(9,3,VB,'Welche Kleidung tragen Prüfer bei Danprüfungen laut PO einheitlich?','Blauer Blazer/Sakko, graue Hose, weißes Hemd, passende Krawatte, weiße Socken und weiße Hallenschuhe',['Dobok in Schwarz','Anzug in Schwarz mit schwarzer Krawatte','Freie Sportkleidung'],'Bei Kup-Prüfungen kann der Prüfer Zivil- oder Sportkleidung oder einen Dobok tragen (PO Zweiter Teil § 1 Nr. 3).',{kw:[[/blau|blazer|sakko/],[/grau/],[/weiss|weis/]],need:2});
+h(8,2,VB,'Was gilt für die Kleidung des Prüfers bei Kup-Prüfungen?','Zivil- oder Sportkleidung oder Dobok',['Immer Dobok','Immer Anzug','Blauer Blazer und graue Hose'],'PO Zweiter Teil § 1 Nr. 3 a.',{re:[/zivil|sport|dobok/]});
+h(8,2,VB,'Darf ein eingesetzter Prüfer bei derselben Prüfung auch Anwärter oder Betreuer sein?','Nein (Verbot der Mehrfachfunktion)',['Ja, als Betreuer','Ja, als Anwärter','Ja, wenn der BPR zustimmt'],'PO Zweiter Teil § 1 Nr. 4.',{re:[/nein|nicht|verbot/]});
+h(9,3,VB,'Innerhalb welcher Frist werden bei Vereins- und Landes-Danprüfungen neue Graduierungen in die DTU-DB eingetragen?','Innerhalb von 7 Kalendertagen',['Innerhalb von 24 Stunden','Innerhalb von 3 Wochen','Innerhalb von 3 Monaten'],'PO Zweiter Teil § 1 Nr. 6 h; der Kommissionsvorsitzende leitet die Prüfungslisten nach der Prüfung digital an LV bzw. LPR.',{re:[/\b7\b|sieben/]});
+h(9,3,VB,'Welchen Bonuswert hat die Bundes-Kampfrichter-Lizenz bei der Bonusregelung (Poom/Dan)?','0,8',['0,4','0,6','1,0'],'PO Zweiter Teil § 2 Nr. 8 g: Kampfrichter-Anwärter 0,4; Landes-Kampfrichter 0,6; Bundes-Kampfrichter 0,8; WT-Coach 1,0; WT-Kampfrichter 1,5.',{re:[/0[,.]8/]});
+h(9,3,VB,'Welchen Bonuswert hat eine WT-Kampfrichterlizenz?','1,5',['0,8','1,0','1,2'],'PO Zweiter Teil § 2 Nr. 8 g.',{re:[/1[,.]5/]});
+h(9,3,VB,'Welchen Bonuswert hat die Prüferlizenz (alle Stufen gleich bewertet)?','0,3',['0,2','0,5','1,0'],'PO Zweiter Teil § 2 Nr. 8 f/g.',{re:[/0[,.]3/]});
+h(9,3,VB,'Welchen Bonuswert hat die Trainer-B-Lizenz TKD (2. Lizenzstufe)?','1,0',['0,8','1,2','1,5'],'Trainer C = 0,8 (1.–5. Dan); Trainer B = 1,0; Trainer A = 1,2; Diplomtrainer = 1,5. Lizenzen, die als Zulassungsvoraussetzung dienen, zählen nicht für die Bonusregelung.',{re:[/1[,.]0|\b1\b/]});
+/* --- Formenlauf (Poomsae) --- */
+h(2,1,PS,'Mit welchem Kommando beginnt die Vorbereitung auf eine Form, und mit welcher Stellung startet man üblicherweise?','Junbi (Bereit) in der Bereitschaftsstellung Naranhi Junbi Seogi',['Sijak in der Reiterstellung','Geuman in der Kranichstellung','Baro in der Tigerstellung'],'Eine Form beginnt (nach Kyeongnye) in der Bereitschaftsstellung und endet mit Baro (Rückkehr in die Ausgangsstellung).',{re:[/junbi|bereit|naranhi/]});
+h(2,2,PS,'Mit welchem Kommando endet eine Form?','Baro (Zurück in die Ausgangsstellung)',['Sijak (Beginnen)','Charyeot (Achtung)','Swieo (Entspannen)'],'Nach Baro folgt die Verbeugung (Kyeongnye).',{re:[/baro/]});
+h(2,2,PS,'Wie ist das Diagramm (Laufbahn) der acht Taegeuk-Formen aufgebaut?','Drei parallele Linien, auf jeder erfolgt eine 180°-Drehung',['Zwei Linien mit je 90°-Drehung','Ein Kreuz aus vier Linien','Eine Linie ohne Drehung'],'Je nach Form wird die Drehung entweder mit Fuß-zurück („durchgezogene“ Linie) oder auf der Stelle („unterbrochene“ Linie) ausgeführt; daraus ergeben sich die Trigramme.',{kw:[[/drei|3/],[/180|umkehr|halbe|dreh/]],need:2});
+h(3,3,PS,'Was bedeutet bei den Taegeuk-Trigrammen eine „durchgezogene“ Linie in der Laufbahn?','Die Drehung wird ausgeführt, indem der vordere Fuß nach hinten gesetzt wird',['Die Drehung erfolgt auf der Stelle','Die Drehung erfolgt im Sprung','Die Drehung erfolgt rückwärts'],'Dreht man auf der Stelle (Drehpunkt), ist die Linie „unterbrochen“.',{re:[/fuss.*hinten|zurueck|zuruck|nach hinten/]});
+h(2,1,PS,'Welcher Tritt kommt in Taegeuk Il Jang vor?','Ap Chagi (Frontkick)',['Yeop Chagi (Seitkick)','Dollyeo Chagi (Halbkreistritt)','Dwit Chagi (Rückwärtstritt)'],'Taegeuk Il Jang (Geon, Himmel) kennt Gehstellung und Vorwärtsbeugestellung, Arae Makgi, Momtong Makgi, Eolgul Makgi, Momtong Jirugi und Ap Chagi.',{fz:['Ap Chagi','Frontkick'],re:[/ap ?chagi|front|vorw/]});
+h(2,2,PS,'Welche Techniken enthält Taegeuk Il Jang?','Arae Makgi, Momtong Makgi, Eolgul Makgi, Momtong Jirugi und Ap Chagi',['Sonnal Makgi, Palkup Chigi und Yeop Chagi','Gawi Makgi, Mureup Chigi und Twio Chagi','Dollyeo Chagi und Batangson Makgi'],'Taegeuk Il Jang ist die erste Form (7. Kup), Trigramm Geon (Himmel).',{kw:[[/arae|tief|unten/],[/momtong|mitte/],[/eolgul|hoch|kopf/],[/jirugi|fauststoss|stoss|faust/],[/ap ?chagi|front/]],need:3});
+h(3,2,PS,'Was bringt Taegeuk Ee Jang neu gegenüber Il Jang?','Fauststoß zum Kopf (Eolgul Jirugi), Übergang von Gehstellung in Vorwärtsbeugestellung und eine Tritt-Stoß-Kombination',['Handkantenhalsschlag und Speerhand','Ellbogenstöße und Seitwärtstritte','Sprungtritte und Scherenblock'],'Taegeuk Ee Jang (Tae, See): Drehungen Fuß zurück, Fuß zurück, auf der Stelle.',{kw:[[/eolgul|kopf|hoch/],[/jirugi|stoss|faust/],[/kombination|tritt/]],need:2});
+h(4,2,PS,'Welche Handkantentechnik zeichnet Taegeuk Sam Jang aus?','Handkanten-Halsschlag (Sonnal Mok Chigi) und Handkantenabwehr nach außen',['Speerhandstoß','Doppelter Handkantenblock am Anfang','Handkantenblock nach innen'],'Taegeuk Sam Jang (Ri, Feuer) beginnt mit Frontkick und Doppelstoß und schließt mit Tiefblock, Tritt und Stoß; es soll „mit Energie wie Feuer“ gelaufen werden.',{re:[/hals|mok|nacken|neck|handkante/]});
+h(4,2,PS,'Welche Technikfolge steht am Anfang von Taegeuk Sam Jang?','Ap Chagi (Frontkick) gefolgt von einem Doppelstoß',['Doppelter Handkantenblock','Arae Makgi mit Ap Seogi','Ellbogenstoß mit Seitwärtstritt'],'Siehe Kukkiwon-Standard (Taekwondo Textbook).',{re:[/ap ?chagi|front/]});
+h(5,2,PS,'Mit welcher Technik beginnt Taegeuk Sa Jang?','Mit einem doppelten Handkantenblock',['Mit Arae Makgi','Mit Ap Chagi','Mit Eolgul Jirugi'],'Taegeuk Sa Jang (Jin, Donner) bringt zudem Speerhandstoß (Pyeonsonkkeut Jirugi), Seitwärtstritt (Yeop Chagi) und den „Schwalbenform“-Schlag (Jebipum Mok Chigi).',{re:[/doppel.*hand|handkante/]});
+h(5,3,PS,'Wie heißt die Technik, bei der hohe Handkantenabwehr und Handkanten-Halsschlag gleichzeitig ausgeführt werden (Taegeuk Sa Jang)?','Jebipum Mok Chigi (Schwalbenform-Schlag)',['Gawi Makgi (Scherenblock)','Batangson Makgi (Handballenblock)','Keumgang Makgi (Diamantblock)'],'Jebipum = Schwalbenform, Mok = Hals, Chigi = Schlag.',{fz:['Jebipum Mok Chigi','Jebipum'],vs:['Gawi Makgi','Batangson Makgi','Keumgang Makgi']});
+h(5,3,PS,'Wie heißt der Speerhandstoß (Taegeuk Sa Jang)?','Pyeonsonkkeut Jirugi',['Sonnal Mok Chigi','Palkup Chigi','Momtong Jirugi'],'Pyeon Sonkkeut = flache Fingerspitzen (Speerhand).',{fz:['Pyeonsonkkeut Jirugi','Pyeonsonkkeut','Pyeon Sonkkeut Jirugi'],vs:['Sonnal Mok Chigi','Palkup Chigi','Momtong Jirugi']});
+h(6,2,PS,'Welche Technikgruppe prägt Taegeuk Oh Jang?','Ellbogentechniken (Palkup Chigi), dazu Seitwärtstritte mit gleichzeitigem Handschlag',['Sprungtritte','Scherenblöcke','Handkantenhalsschläge'],'Taegeuk Oh Jang (Seon, Wind): sanft, aber unnachgiebig wie der Wind; Drehungen: auf der Stelle, Fuß zurück, Fuß zurück.',{re:[/ellb|palkup|elbow/]});
+h(7,2,PS,'Welcher Tritt prägt Taegeuk Yuk Jang?','Dollyeo Chagi (Halbkreistritt)',['Ap Chagi','Naeryeo Chagi','Twio Chagi'],'Taegeuk Yuk Jang (Gam, Wasser) hat Halbkreistritt und Drehabwehr (Twist Block), Handflächenblöcke zum Schluss.',{fz:['Dollyeo Chagi','Halbkreistritt'],re:[/halbkreis|dollyeo|round/],vs:['Ap Chagi','Yeop Chagi','Dwit Chagi','Naeryeo Chagi']});
+h(7,3,PS,'Was ist an Taegeuk Yuk Jang besonders?','Es ist die einzige Taegeuk-Form mit Rückwärtsschritten (am Ende in Rückwärtsbeuge- und Vorwärtsbeugestellung)',['Sie enthält als einzige Form Sprungtritte','Sie besteht aus nur zwei Linien','Sie wird ohne Kampfschrei gelaufen'],'Nach Kukkiwon-Beschreibung; in der Mitte steht ein langsam ausgeführter Tiefblock auf acht Zählzeiten.',{re:[/rueckwaerts|ruckwarts|zurueck|zuruck/]});
+h(8,2,PS,'In welcher Stellung beginnt Taegeuk Chil Jang?','In der Tigerstellung (Beom Seogi)',['In der Reiterstellung','In der Kranichstellung','In der Kreuzstellung'],'Taegeuk Chil Jang (Gan, Berg): Drehungen auf der Stelle, auf der Stelle, Fuß zurück.',{fz:['Beom Seogi','Bom Seogi'],re:[/tiger|beom/]});
+h(8,3,PS,'Welche Techniken kommen in Taegeuk Chil Jang vor?','Scherenblock (Gawi Makgi), Handballenblock, Rückhandschlag, Kniestoß (Mureup Chigi), Tiefblock mit doppelter Handkante',['Nur Faust- und Fußstöße','Sprungtritte und Drehtritte','Ellbogenstöße mit Seitwärtstritt'],'Taegeuk Chil Jang ist die 7. Form (1. Kup).',{kw:[[/schere|gawi/],[/knie|mureup/],[/handball|batangson|palm/],[/handkante|sonnal/]],need:2});
+h(9,3,PS,'Welche Besonderheit hat der Sprungtritt in Taegeuk Pal Jang?','In einem einzigen Sprung wird zweimal getreten, einmal mit jedem Bein',['Er ist ein Drehsprungtritt nach hinten','Er wird als Sprung-Seitwärtstritt ausgeführt','Er wird nur mit dem Standbein ausgeführt'],'Taegeuk Pal Jang (Gon, Erde, 8. Form) enthält außerdem Tigerstellung, Kreuzstellung, Frontkick mit anschließendem Sprung-Frontkick und halben Bergblock.',{re:[/zweimal|2 ?x|jedes bein|beide beine|einem sprung/]});
+h(9,2,PS,'Welche Stellung kommt in der Mittellinie von Taegeuk Pal Jang vor?','Tigerstellung (Beom Seogi)',['Kranichstellung','Reiterstellung','Rückwärtsbeugestellung'],'Dort steht in der Tigerstellung ein doppelter Handkantenblock nach vorn.',{re:[/tiger|beom/]});
+h(10,3,PS,'Welche Stellung ist typisch für Poomsae Koryeo und Keumgang?','Hakdari Seogi (Kranichstellung, Einbeinstand)',['Juchum Seogi (Reiterstellung)','Dwit Kubi (Rückwärtsbeuge)','Moa Seogi (geschlossene Stellung)'],'Beide Formen enthalten die Kranichstellung; Keumgang außerdem den Diamantblock (Keumgang Makgi) und den Bergblock (San Makgi).',{fz:['Hakdari Seogi','Kranichstellung'],re:[/kranich|hakdari|einbein/],vs:['Juchum Seogi','Dwit Kubi','Moa Seogi','Beom Seogi']});
+h(10,3,PS,'Welches Schriftzeichen bildet das Diagramm der Poomsae Koryeo?','士 (Gelehrter)',['山 (Berg)','十 (Zehn)','一 (Eins)'],'Koryeo: 士 (Seonbi, Gelehrter); Keumgang: 山 (Berg); Pyeongwon: 一 (Eins, Ebene); Sipjin: 十 (Zehn).');
+h(11,3,PS,'Welches Schriftzeichen bildet das Diagramm der Poomsae Keumgang?','山 (Berg)',['士 (Gelehrter)','十 (Zehn)','一 (Eins)'],'Keumgang: 山 (Berg).');
+h(12,3,PS,'Welches Schriftzeichen bildet das Diagramm der Poomsae Pyeongwon?','一 (Eins; Ebene)',['士 (Gelehrter)','山 (Berg)','十 (Zehn)'],'Pyeongwon: 一, die gerade Linie der weiten Ebene.');
+h(13,3,PS,'Welches Schriftzeichen bildet das Diagramm der Poomsae Sipjin?','十 (Zehn)',['士 (Gelehrter)','山 (Berg)','一 (Eins)'],'Sipjin: 十, das Dezimalsystem; Zehn als Zeichen für Vollkommenheit.');
+/* generierte Fragen werden unten ergänzt */
+
+/* ===================== FRAGEN BAUEN ===================== */
+const POOL=[];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+H.forEach((q,i)=>{q.id='h'+i;q.fam='h'+i;POOL.push(q)});
+const add=(o)=>POOL.push(o);
+
+/* Vokabelfragen */
+V.forEach(e=>{
+  const sameCat=V.filter(x=>x.c===e.c&&x.id!==e.id);
+  const others=V.filter(x=>x.id!==e.id);
+  const distDe=shuffle(sameCat).slice(0,4).map(x=>x.de);
+  while(distDe.length<4){const x=shuffle(others)[0];if(x&&!distDe.includes(x.de)&&x.de!==e.de)distDe.push(x.de)}
+  const distK=shuffle(sameCat).slice(0,4).map(x=>x.k);
+  while(distK.length<4){const x=shuffle(others)[0];if(x&&!distK.includes(x.k)&&x.k!==e.k)distK.push(x.k)}
+  const cat=e.c.replace(/ \(.*\)/,'');
+  const exp=`${e.k} = ${e.de}${e.a&&e.a.length&&e.a[0]!==e.k?` (auch geschrieben: ${e.a.slice(0,2).join(', ')})`:''}. Rubrik: ${e.c}.`;
+  if(e.num){
+    add({id:'vn'+e.id,fam:'v'+e.id,g:e.g,d:e.g>0?2:1,c:'Begriffe & Kommandos',q:`Welche Zahl bedeutet „${e.k}“ im ${e.c.includes('sino')?'sino-koreanischen':'rein koreanischen'} Zählsystem?`,a:e.de,w:shuffle(V.filter(x=>x.c===e.c&&x.id!==e.id).map(x=>x.de)).slice(0,4),x:exp,re:[e.d]});
+    add({id:'vk'+e.id,fam:'v'+e.id,g:e.g,d:2,c:'Begriffe & Kommandos',q:`Wie heißt die Zahl ${e.de} im ${e.c.includes('sino')?'sino-koreanischen (Taegeuk-Namen, Gürtelgrade)':'rein koreanischen (Zählen von Techniken)'} Zählsystem auf Koreanisch?`,a:e.k,w:distK,x:exp,fz:[e.k,...e.a],vs:others.filter(x=>x.num&&x.c===e.c).flatMap(x=>[x.k,...x.a])});
+  }else{
+    add({id:'vd'+e.id,fam:'v'+e.id,g:e.g,d:e.g<=1?1:2,c:'Begriffe & Kommandos',q:`Was bedeutet „${e.k}“ (${cat})?`,a:e.de,w:distDe,x:exp,re:[e.d]});
+    add({id:'vk'+e.id,fam:'v'+e.id,g:e.g,d:e.g<=1?2:3,c:'Begriffe & Kommandos',q:`Wie lautet der koreanische Begriff für „${e.de}“?`,a:e.k,w:distK,x:exp,fz:[e.k,...e.a],vs:others.flatMap(x=>[x.k,...x.a])});
+  }
+});
+
+/* Programm-Fragen aus der PO */
+const KUP_FORM=[null,null,0,1,2,3,4,5,6];  // Index im Grad -> Taegeuk-Index
+GR.forEach((gr,i)=>{
+  if(i>=0&&i<=8){
+    const others=GR.slice(0,9).filter((_,j)=>j!==i);
+    add({id:'pb'+i,fam:'pb'+i,g:i,d:i<5?1:2,c:'Prüfungsordnung',q:`Welcher Gürtel gehört zum ${gr.n}?`,a:gr.belt,w:shuffle(others).slice(0,4).map(x=>x.belt),x:`PO § 1 Nr. 5: ${gr.n} = ${gr.belt}.`});
+    if(i>0)add({id:'pp'+i,fam:'pp'+i,g:i,d:2,c:'Prüfungsordnung',q:`Welche Mindest-Vorbereitungszeit gilt für die Prüfung zum ${gr.n}?`,a:gr.prep,w:shuffle([...new Set(GR.filter((_,j)=>j!==i).map(x=>x.prep))].filter(p=>p!==gr.prep)).slice(0,4),x:`PO § 2, Programm ${gr.n}: ${gr.prep}.`,re:[new RegExp(gr.prep.match(/(\d+) (Monate|Jahre?)/)[1]+'\\s*'+(gr.prep.includes('Monate')?'monat':'jahr'))]});
+  }
+});
+/* Formenzuordnung Kup */
+for(let i=2;i<=8;i++){
+  const t=TAE[KUP_FORM[i]];
+  const othersT=TAE.filter(x=>x!==t);
+  add({id:'pf'+i,fam:'pf'+i,g:i,d:2,c:'Poomsae',q:`Welche Taegeuk-Form gehört im Pflichtprogramm zur Prüfung zum ${GR[i].n} (Technik)?`,a:`${t.n}. Form – ${t.k}`,w:shuffle(othersT).slice(0,4).map(x=>`${x.n}. Form – ${x.k}`),x:`PO § 2: ${GR[i].n} verlangt die ${t.n}. Form (${t.k}).`,re:[new RegExp('\\b'+t.n+'\\b|'+t.k.split(' ')[1].toLowerCase()+' ?jang')]});
+  add({id:'pk'+i,fam:'pf'+i,g:i,d:2,c:'Poomsae',q:`Für welche Graduierung ist ${t.k} (${t.n}. Form) die neue Pflichtform?`,a:GR[i].n,w:shuffle(GR.slice(2,9).filter((_,j)=>j+2!==i)).slice(0,4).map(x=>x.n),x:`${t.k} ist die ${t.n}. Form: Pflichtform zur Prüfung zum ${GR[i].n}.`,re:[new RegExp('\\b'+GR[i].n.split('.')[0]+'\\.?\\s*kup')]});
+}
+/* Taegeuk-Details */
+TAE.forEach((t,i)=>{
+  const g=i<7?KUP_FORM.indexOf(i):9;
+  add({id:'tn'+i,fam:'tn'+i,g,d:2,c:'Poomsae',q:`Wie heißt die ${t.n}. Taegeuk-Form auf Koreanisch?`,a:t.k,w:shuffle(TAE.filter(x=>x!==t)).slice(0,4).map(x=>x.k),x:`${t.n}. Form = ${t.k} (Jang = Kapitel/Abschnitt). Trigramm: ${t.tri} (${t.de}).`,fz:[t.k,t.k.replace('Taegeuk ',''),'Taeguk '+t.k.split(' ').slice(1).join(' ')],vs:TAE.filter(x=>x!==t).flatMap(x=>[x.k,x.k.replace('Taegeuk ','')])});
+  add({id:'tt'+i,fam:'tt'+i,g,d:3,c:'Poomsae',q:`Welches Trigramm (Naturelement) steht für ${t.k}?`,a:`${t.tri} – ${t.de}`,w:shuffle(TAE.filter(x=>x!==t)).slice(0,4).map(x=>`${x.tri} – ${x.de}`),x:`${t.k}: ${t.tri} = ${t.de}. Reihenfolge: Geon (Himmel), Tae (See), Ri (Feuer), Jin (Donner), Seon (Wind), Gam (Wasser), Gan (Berg), Gon (Erde).`,re:[new RegExp(t.tri.toLowerCase()+'|'+t.de.split(' ')[0].toLowerCase().replace('ö','o'))]});
+  add({id:'tm'+i,fam:'tm'+i,g,d:3,c:'Poomsae',q:`Wie viele Bewegungen hat ${t.k} (Kukkiwon-Standard)?`,a:String(t.mv),w:[...new Set(TAE.map(x=>String(x.mv)))].filter(x=>x!==String(t.mv)),x:`${t.k} hat ${t.mv} Bewegungen. (1: 18, 2: 18, 3: 20, 4: 20, 5: 20, 6: 19, 7: 25, 8: 27)`,re:[new RegExp('\\b'+t.mv+'\\b')]});
+});
+/* Höhere Poomsae */
+POO.forEach((p,i)=>{
+  const g=9+Math.min(8,[0,1,2,3,5,5,6,7,8][i]+1);
+  const gi=Math.min(17,[10,11,12,12,13,14,15,16,17][i]);
+  const others=POO.filter(x=>x!==p);
+  add({id:'ph'+i,fam:'ph'+i,g:gi,d:3,c:'Poomsae',q:`Welche Bedeutung hat die Poomsae ${p.k}?`,a:p.de,w:shuffle(others).slice(0,4).map(x=>x.de),x:`${p.k}: ${p.de}. In der PO verlangt für den ${p.dan}.`,re:[p.re]});
+  add({id:'pd'+i,fam:'pd'+i,g:gi,d:3,c:'Poomsae',q:`Zu welchem Dan wird ${p.k} als Pflichtform verlangt?`,a:p.dan,w:shuffle(others).slice(0,4).map(x=>x.dan).filter(d=>d!==p.dan),x:`PO § 2: ${p.k} = ${p.dan}. Folge: 2. Dan Koryeo, 3. Dan Keumgang, 4. Dan Taebaek + Pyeongwon, 5. Dan Pyeongwon + Sipjin, 6. Dan Sipjin + Jitae, 7. Dan Jitae + Cheonkwon, 8. Dan Cheonkwon + Hansu, 9. Dan Hansu + Ilyeo.`,re:[new RegExp(p.dan.split('.')[0]+'\\.?\\s*dan')]});
+  add({id:'pm'+i,fam:'pm'+i,g:gi,d:3,c:'Poomsae',q:`Wie viele Bewegungen hat Poomsae ${p.k} (Kukkiwon-Standard)?`,a:String(p.mv),w:[...new Set(POO.map(x=>String(x.mv)))].filter(x=>x!==String(p.mv)),x:`${p.k} hat ${p.mv} Bewegungen (Koryeo 30, Keumgang 27, Taebaek 26, Pyeongwon 25, Sipjin 29, Jitae 28, Cheonkwon 29, Hansu 27, Ilyeo 25).`,re:[new RegExp('\\b'+p.mv+'\\b')]});
+});
+/* Theorie je Grad */
+const THEO=[[1,'Wettkampfregeln nach WOZ oder WOP'],[3,'Notwehrrecht (sinngemäß)'],[4,'Geistige Hintergründe des Taekwondo'],[5,'Kenntnis der vitalen Körperpunkte'],[6,'Beschreibung und Erklärung der Trainingsinhalte'],[7,'Technikprinzipien'],[8,'Organisation/Aufbau der DTU und des zuständigen Landesverbands + Grundkenntnisse zur Trainingslehre']];
+THEO.forEach(([g,t])=>add({id:'th'+g,fam:'th'+g,g,d:2,c:'Theorie & Geist',q:`Welches Theorie-Thema kommt zur Prüfung zum ${GR[g].n} neu hinzu?`,a:t,w:shuffle(THEO.filter(x=>x[0]!==g)).slice(0,4).map(x=>x[1]),x:`PO § 2, ${GR[g].n}: Theorie = Bisherige Themen + ${t}.`}));
+/* Bruchtest je Grad */
+const BRG=[[5,'1 Technik nach eigener Wahl'],[6,'2 verschiedene Einzeltechniken nach eigener Wahl'],[9,'3 verschiedene Techniken, darunter eine 2er-Kombination'],[10,'4 verschiedene Techniken; 2er-Kombination und eine Sprungtechnik'],[11,'5 verschiedene Techniken; 3er-Kombination und 2 verschiedene Sprungtechniken']];
+BRG.forEach(([g,t])=>add({id:'br'+g,fam:'br'+g,g,d:g>=9?3:2,c:'Bruchtest',q:`Was verlangt der Bruchtest zur Prüfung zum ${GR[g].n}?`,a:t,w:shuffle(BRG.filter(x=>x[0]!==g)).slice(0,4).map(x=>x[1]),x:`PO § 2, ${GR[g].n}: ${t}. (2. und 1. Kup: ebenfalls 2 verschiedene Einzeltechniken.)`}));
+/* Vorbereitungszeit Dan */
+[[9,'1 Jahr'],[11,'2 Jahre'],[12,'3 Jahre'],[13,'4 Jahre'],[14,'5 Jahre'],[15,'6 Jahre'],[16,'7 Jahre'],[17,'8 Jahre']].forEach(([g,t])=>add({id:'pv'+g,fam:'pv'+g,g,d:3,c:'Prüfungsordnung',q:`Wie lange beträgt die Mindest-Vorbereitungszeit seit der letzten Graduierung für den ${GR[g].n}?`,a:t,w:['1 Jahr','2 Jahre','3 Jahre','4 Jahre','5 Jahre','6 Jahre','7 Jahre','8 Jahre'].filter(x=>x!==t).slice(0,5),x:`PO § 2: 1./2. Dan 1 Jahr, 3. Dan 2 Jahre, 4. Dan 3, 5. Dan 4, 6. Dan 5, 7. Dan 6, 8. Dan 7, 9. Dan 8 Jahre.`,re:[new RegExp('\\b'+t.split(' ')[0]+'\\b|'+['','ein','zwei','drei','vier','funf','sechs','sieben','acht'][+t.split(' ')[0]])]}));
+/* Abkürzungen aus der PO */
+const ABB=[['DTU','Deutsche Taekwondo Union',/deutsche taekwondo|taekwondo union/],['ETU','Europäische Taekwondo Union',/europ/],['WT','World Taekwondo',/world/],['BPR','Bundesreferent für das Prüfungswesen',/bundesref|pruefungswesen|prufungswesen/],['LPR','Landesprüfungsreferent (Landesreferent für das Prüfungswesen)',/landespruef|landesprüf|landesref|pruefungsref|prufungsref/],['DB','Verwaltungsdatenbank',/datenbank/],['EO','Ehrenordnung',/ehren/],['FGO','Finanz- und Gebührenordnung',/finanz|gebuehr|gebuhr/],['LV','Landesverband',/landesverband/],['MV','Mitgliederversammlung',/mitglieder/],['PassO','Passordnung',/pass/],['PL','Prüferlizenz',/pruefer.?lizenz|prufer.?lizenz|pruefer|prufer/],['PO','Prüfungsordnung für Kup-, Poom- und Dangrade',/pruefungsordnung|prufungsordnung/],['SV','Selbstverteidigung',/selbstverteidig/],['WOZ','Wettkampfordnung für Zweikampf',/zweikampf/],['WOP','Wettkampfordnung für Poomsae-Technik',/poomsae|technik/]];
+ABB.forEach(([k,de,re],i)=>{
+  const others=ABB.filter(x=>x[0]!==k);
+  add({id:'ab'+i,fam:'ab'+i,g:8,d:2,c:VB,q:`Wofür steht die Abkürzung „${k}“ in der Prüfungsordnung?`,a:de,w:shuffle(others).slice(0,4).map(x=>x[1]),x:`${k} = ${de}.`,re:[re]});
+  add({id:'ak'+i,fam:'ab'+i,g:8,d:2,c:VB,q:`Welche Abkürzung steht für „${de}“?`,a:k,w:shuffle(others).slice(0,4).map(x=>x[0]),x:`${k} = ${de}.`,re:[new RegExp('^\\s*'+k.toLowerCase()+'\\s*$')]});
+});
+/* Laufbahn der Taegeuk-Formen (Drehungen) */
+const PAT={Il:'SSS',Ee:'SSB',Sam:'SBS',Sa:'SBB',Oh:'BSS',Yuk:'BSB',Chil:'BBS',Pal:'BBB'};
+const patTxt=p=>[...p].map(c=>c==='S'?'Fuß zurück':'auf der Stelle').join(' – ');
+TAE.forEach((t,i)=>{
+  const key=Object.keys(PAT)[i],p=PAT[key];
+  const g=i<7?KUP_FORM.indexOf(i):9;
+  add({id:'tp'+i,fam:'tp'+i,g,d:3,c:'Poomsae',q:`Wie werden bei ${t.k} die drei 180°-Drehungen (Linie 1, 2, 3) ausgeführt?`,a:patTxt(p),w:shuffle(Object.values(PAT).filter(x=>x!==p)).slice(0,4).map(patTxt),x:`${t.k} (${t.tri}, ${t.de}): ${patTxt(p)}. „Fuß zurück“ ergibt eine durchgezogene, „auf der Stelle“ eine unterbrochene Trigramm-Linie. Gelesen von unten nach oben ist das das Trigramm ${t.tri}.`});
+});
+/* Formen nach Merkmal */
+const FEAT=[['Doppelter Handkantenblock am Anfang',5,'Taegeuk Sa Jang'],['Ellbogentechniken',6,'Taegeuk Oh Jang'],['Handkanten-Halsschlag',4,'Taegeuk Sam Jang'],['Fauststoß zum Kopf als Neuheit',3,'Taegeuk Ee Jang'],['Halbkreistritt und Rückwärtsschritte',7,'Taegeuk Yuk Jang'],['Beginn in der Tigerstellung',8,'Taegeuk Chil Jang'],['Sprungtritt mit zwei Tritten in einem Sprung',9,'Taegeuk Pal Jang']];
+FEAT.forEach(([f,g,k],i)=>add({id:'fe'+i,fam:'fe'+i,g,d:3,c:'Poomsae',q:`Welche Form zeichnet sich durch folgendes Merkmal aus: ${f}?`,a:k,w:shuffle(FEAT.filter(x=>x[2]!==k)).slice(0,4).map(x=>x[2]),x:`${k}: ${f}.`,fz:[k,k.replace('Taegeuk ','')],vs:FEAT.filter(x=>x[2]!==k).flatMap(x=>[x[2],x[2].replace('Taegeuk ','')])}));
+POOL.forEach(q=>{q.w=(q.w||[]).filter(x=>x!==q.a)});
+
+/* ===================== AUSWERTUNG ===================== */
+const strip=s=>String(s).toLowerCase().replace(/ß/g,'ss').normalize('NFD').replace(/[̀-ͯ]/g,'');
+const fold=s=>strip(s).replace(/[^a-z]/g,'').replace(/ch/g,'j').replace(/sh/g,'s').replace(/eo/g,'o').replace(/eu/g,'u').replace(/oo/g,'u').replace(/ae/g,'e').replace(/ee/g,'i').replace(/yo/g,'o').replace(/ye/g,'e').replace(/g/g,'k').replace(/d/g,'t').replace(/b/g,'p').replace(/h/g,'').replace(/(.)\1+/g,'$1');
+function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let p=Array.from({length:n+1},(_,i)=>i);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
+const tol=l=>l<=4?0:l<=8?1:2;
+function grade(q,raw,choice){
+  if(q.mode==='mc')return choice===q.correctIdx?{s:1}:{s:0};
+  const t=strip(raw).trim();
+  if(!t)return {s:0};
+  if(q.fz){
+    const inp=fold(raw);
+    const targets=q.fz.map(fold).filter(Boolean);
+    let dT=Math.min(...targets.map(x=>lev(inp,x)));
+    const inc=targets.some(x=>x.length>=5&&inp.includes(x));
+    if(inc)dT=0;
+    const tl=Math.max(...targets.map(x=>x.length));
+    const others=(q.vs||[]).map(fold).filter(Boolean);
+    const dO=others.length?Math.min(...others.map(x=>lev(inp,x))):99;
+    const okOther=!others.some(x=>x.length>=5&&x.length>tl&&inp.includes(x));
+    const tl2=tol(Math.min(...targets.map(x=>x.length)));
+    return (dT<=tl2&&dT<dO&&okOther)?{s:1}:{s:0};
+  }
+  if(q.kw){
+    const hits=q.kw.filter(g=>g.some(r=>r.test(t))).length;
+    return {s:Math.min(1,hits/(q.need||q.kw.length)),hits,need:q.need||q.kw.length};
+  }
+  if(q.re)return {s:q.re.some(r=>r.test(t))?1:0};
+  return {s:0};
+}
+const label=(s,mc)=>s>=1?['Sehr gut','good','Ja']:s>=.6?['Bestanden','good','Ja']:s>=.3?['Fehlerhaft','mid','Nein']:['Nicht bestanden','bad','Nein'];
+const note=p=>p>=92?1:p>=81?2:p>=67?3:p>=50?4:p>=30?5:6;
+const noteTxt=n=>['','sehr gut','gut','befriedigend','ausreichend','mangelhaft','ungenügend'][n];
+
+
+/* ===================== APP (UI, Profile, Lernmodi) ===================== */
+(function(){
+'use strict';
+const app=document.getElementById('app');
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- Texte DE / EN ---------- */
+const I18N={
+'app.name':['TKD Trainer','TKD Trainer'],
+'nav.home':['Start','Home'],'nav.learn':['Lernen','Learn'],'nav.cat':['Fragen','Questions'],'nav.me':['Profil','Profile'],
+'yes':['Ja','Yes'],'no':['Nein','No'],'cancel':['Abbrechen','Cancel'],'save':['Speichern','Save'],'delete':['Löschen','Delete'],'edit':['Bearbeiten','Edit'],'back':['Zurück','Back'],
+'ob.title':['Willkommen im Dojang','Welcome to the dojang'],
+'ob.intro':['Lege dein Profil an. Alles bleibt auf diesem Gerät, es gibt kein Konto und keinen Server.','Create your profile. Everything stays on this device. There is no account and no server.'],
+'ob.name':['Name','Name'],'ob.avatar':['Farbe','Colour'],'ob.target':['Zielprüfung','Target exam'],'ob.goal':['Tagesziel (Fragen pro Tag)','Daily goal (questions per day)'],
+'ob.start':['Los geht es','Let us go'],'ob.restore':['Sicherung wiederherstellen','Restore a backup'],'ob.nameDefault':['Prüfling','Candidate'],'ob.lang':['Sprache','Language'],
+'home.hello':['Hallo','Hello'],'home.toNext':['Noch {xp} XP bis {rank}','{xp} XP to {rank}'],'home.max':['Höchster Rang erreicht','Top rank reached'],
+'home.goal':['Tagesziel','Daily goal'],'home.goalDone':['Tagesziel erreicht','Daily goal reached'],'home.goalLeft':['Noch {n} bis zum Tagesziel','{n} to go for today'],
+'home.review':['Wiederholen','Review'],'home.reviewSub':['Fällig: {n}','Due: {n}'],'home.quick':['Schnellrunde','Quick round'],'home.quickSub':['5 Fragen, etwa 3 Minuten','5 questions, about 3 minutes'],
+'home.exam':['Prüfungssimulation','Exam simulation'],'home.examSub':['Wie in der Prüfung','Like the real thing'],'home.weak':['Schwachstellen','Weak spots'],'home.weakSub':['Deine Fehler','Your mistakes'],
+'home.topic':['Themenpaket','Topic pack'],'home.topicSub':['Gezielt üben','Focused practice'],
+'home.streak':['Serie','Streak'],'home.streakDays':['{n} Tage in Folge','{n} days in a row'],'home.streakRisk':['Heute noch üben, damit die Serie bleibt.','Practise today to keep your streak.'],
+'home.freeze':['Ein verpasster Tag pro Woche wird verziehen.','One missed day per week is forgiven.'],
+'home.examIn':['Prüfung zum {g} in {n} Tagen','Exam for {g} in {n} days'],'home.examToday':['Prüfung zum {g} ist heute','Exam for {g} is today'],'home.examPast':['Das Prüfungsdatum liegt in der Vergangenheit.','The exam date is in the past.'],
+'home.plan':['Noch {n} Fragen nicht gefestigt, etwa {p} pro Tag bis dahin.','{n} questions still to master, about {p} a day until then.'],
+'home.badges':['Abzeichen','Badges'],'home.rankNote':['Der Rang gilt nur in der App und ersetzt keinen echten Gürtel.','Rank applies in this app only and does not replace a real belt.'],
+'home.noDue':['Nichts fällig','Nothing due'],
+'learn.title':['Lernen','Learn'],
+'m.exam':['Prüfungssimulation','Exam simulation'],'m.exam.d':['Wie in der Prüfung: eine Frage, Wertung mit Ja oder Nein, Ergebnis am Ende.','Like the real thing: one question at a time, yes/no rating, result at the end.'],
+'m.train':['Training','Training'],'m.train.d':['Gemischte Fragen mit direkter Erklärung, ohne Bestanden oder Nicht bestanden.','Mixed questions with instant explanations, no pass or fail.'],
+'m.review':['Wiederholung','Review'],'m.review.d':['Fragen, die nach dem Wiederholplan (1, 3, 7, 14, 30 Tage) wieder dran sind.','Questions due again on the review schedule (1, 3, 7, 14, 30 days).'],
+'m.weak':['Schwachstellen','Weak spots'],'m.weak.d':['Fragen, die du bisher falsch beantwortet hast.','Questions you got wrong so far.'],
+'m.topic':['Themenpaket','Topic pack'],'m.topic.d':['Ein Thema gezielt üben, zum Beispiel Kommandos oder Verbandsstruktur.','Practise one topic, such as commands or federation structure.'],
+'m.quick':['Schnellrunde','Quick round'],'m.quick.d':['5 Fragen für zwischendurch, fällige zuerst.','5 questions for a spare moment, due ones first.'],
+'cfg.grade':['Prüfungsgrad','Exam grade'],'cfg.diff':['Schwierigkeit','Difficulty'],'cfg.count':['Anzahl Fragen','Number of questions'],'cfg.cat':['Thema','Topic'],'cfg.start':['Starten','Start'],
+'cfg.due':['Fällig: {n}','Due: {n}'],'cfg.noDue':['Aktuell ist nichts fällig. Beantwortete Fragen kommen nach dem Wiederholplan zurück.','Nothing is due right now. Answered questions return on the review schedule.'],
+'cfg.weakN':['Schwache Fragen: {n}','Weak questions: {n}'],'cfg.noWeak':['Noch keine Fehler gespeichert. Übe zuerst im Training.','No mistakes recorded yet. Practise in Training first.'],
+'diff.0':['Leicht','Easy'],'diff.0d':['Antworten auswählen','Pick answers'],'diff.1':['Mittel','Medium'],'diff.1d':['Teils frei antworten','Some free answers'],'diff.2':['Schwer','Hard'],'diff.2d':['Freie Antworten','Free answers'],
+'q.none':['Dafür gibt es gerade keine passenden Fragen.','There are no matching questions right now.'],
+'q.of':['Frage {i} von {n}','Question {i} of {n}'],'q.answer':['Antworten','Answer'],'q.skip':['Weiß ich nicht','I do not know'],'q.next':['Nächste Frage','Next question'],'q.result':['Ergebnis anzeigen','Show result'],
+'q.quit':['Beenden','Stop'],'q.yourAnswer':['Deine Antwort','Your answer'],'q.phText':['Antwort in eigenen Worten','Answer in your own words'],'q.phKo':['Koreanischen Begriff eintippen','Type the Korean term'],
+'q.show':['Antwort zeigen','Show answer'],'q.knew':['Wusste ich','I knew it'],'q.knewNot':['Wusste ich nicht','I did not know'],'q.correct':['Richtige Antwort: {a}','Correct answer: {a}'],
+'q.fbOk':['Richtig.','Correct.'],'q.fbMostly':['Im Kern richtig, aber nicht vollständig.','Mostly right, but incomplete.'],'q.fbPart':['Teilweise richtig.','Partly right.'],'q.fbNo':['Das war nicht korrekt.','That was not correct.'],
+'q.pts':['{h} von {n} geforderten Punkten genannt.','{h} of {n} required points named.'],'q.override':['Meine Antwort war richtig','My answer was right'],'q.overridden':['Als richtig gewertet','Counted as right'],
+'q.rating':['Wertung: {v}','Rating: {v}'],'lab.good':['Sehr gut','Excellent'],'lab.passed':['Bestanden','Passed'],'lab.flawed':['Fehlerhaft','Flawed'],'lab.failed':['Nicht bestanden','Failed'],
+'r.exam':['Prüfungsergebnis','Exam result'],'r.round':['Runde beendet','Round finished'],'r.passed':['Prüfung bestanden','Exam passed'],'r.failed':['Prüfung nicht bestanden','Exam not passed'],
+'r.grade':['Note {n} ({t})','Grade {n} ({t})'],'r.score':['{ja} von {n} Antworten mit „Ja“ · {pct} %','{ja} of {n} answers rated “Yes” · {pct}%'],
+'r.passHint':['Zum Bestehen müssen mehr als die Hälfte der Bereiche mit „Ja“ bewertet werden (PO Zweiter Teil § 2 Nr. 11).','To pass, more than half of the areas must be rated “Yes” (PO part 2, § 2, no. 11).'],
+'r.perfect':['Fehlerfrei: +20 XP','Flawless: +20 XP'],'r.passBonus':['Bestanden: +10 XP','Passed: +10 XP'],'r.goalBonus':['Tagesziel erreicht: +15 XP','Daily goal reached: +15 XP'],
+'r.lvl':['Neuer Rang: {rank}','New rank: {rank}'],'r.badge':['Neues Abzeichen: {n}','New badge: {n}'],'r.learn':['Zum Nachlernen','To review'],'r.yours':['Deine Antwort: {a}','Your answer: {a}'],
+'r.right':['Richtig: {a}','Correct: {a}'],'r.again':['Nochmal','Again'],'r.home':['Zur Startseite','Back to start'],'r.noErr':['Keine Fehler. Sehr gut!','No mistakes. Well done!'],'r.byTopic':['Nach Themen','By topic'],
+'nt.1':['sehr gut','very good'],'nt.2':['gut','good'],'nt.3':['befriedigend','satisfactory'],'nt.4':['ausreichend','sufficient'],'nt.5':['mangelhaft','poor'],'nt.6':['ungenügend','insufficient'],
+'cat.title':['Fragenkatalog','Question catalogue'],'cat.new':['Neue Frage','New question'],'cat.import':['Import','Import'],'cat.export':['Export','Export'],'cat.packs':['Pakete','Packs'],
+'cat.builtin':['Eingebaut: DTU-Prüfungsordnung 2024','Built in: DTU exam regulations 2024'],'cat.count':['Fragen: {n}','Questions: {n}'],'cat.delPack':['Paket löschen','Delete pack'],
+'cat.delPackQ':['Paket „{p}“ mit {n} Fragen löschen?','Delete pack “{p}” with {n} questions?'],'cat.search':['Frage oder Antwort suchen','Search question or answer'],'cat.all':['Alle Themen','All topics'],
+'cat.ownOnly':['Nur eigene Fragen','Own questions only'],'cat.hits':['Treffer: {n}','Matches: {n}'],'cat.more':['Mehr anzeigen','Show more'],'cat.answer':['Antwort','Answer'],'cat.expl':['Erklärung','Explanation'],
+'cat.meta':['{c} · ab {g} · Stufe {d}','{c} · from {g} · level {d}'],'cat.lang':['Die eingebauten Fragen sind auf Deutsch, die Oberfläche ist zweisprachig. Eigene Fragen können in jeder Sprache sein.','Built-in questions are in German, the interface is bilingual. Your own questions can be in any language.'],
+'cat.off':['aus','off'],'cat.enable':['Paket aktiv','Pack active'],
+'f.titleNew':['Neue Frage','New question'],'f.titleEdit':['Frage bearbeiten','Edit question'],'f.kind':['Fragetyp','Question type'],
+'f.k.mc':['Auswahl','Multiple choice'],'f.k.mc.d':['Richtige und falsche Antworten','Correct and wrong answers'],'f.k.text':['Freitext','Free text'],'f.k.text.d':['Antwort wird getippt und geprüft','Answer is typed and checked'],
+'f.k.card':['Karteikarte','Flashcard'],'f.k.card.d':['Antwort aufdecken, selbst bewerten','Reveal answer, rate yourself'],
+'f.q':['Frage','Question'],'f.a':['Richtige Antwort','Correct answer'],'f.w':['Falsche Antworten (mindestens eine)','Wrong answers (at least one)'],'f.w1':['Falsche Antwort 1','Wrong answer 1'],'f.w2':['Falsche Antwort 2','Wrong answer 2'],'f.w3':['Falsche Antwort 3','Wrong answer 3'],
+'f.alts':['Weitere akzeptierte Antworten, getrennt durch |','More accepted answers, separated by |'],'f.x':['Erklärung (optional)','Explanation (optional)'],'f.c':['Thema','Topic'],'f.g':['Ab Grad','From grade'],'f.d':['Schwierigkeit','Difficulty'],'f.pack':['Paket','Pack'],
+'f.saveMore':['Speichern und weitere Frage','Save and add another'],'f.errQ':['Bitte eine Frage eingeben.','Please enter a question.'],'f.errA':['Bitte die richtige Antwort eingeben.','Please enter the correct answer.'],
+'f.errW':['Bitte mindestens eine falsche Antwort eingeben.','Please enter at least one wrong answer.'],'f.errWsame':['Eine falsche Antwort ist gleich der richtigen.','A wrong answer is the same as the correct one.'],
+'f.errDup':['Diese Frage gibt es schon im Katalog.','This question already exists in the catalogue.'],'f.saved':['Frage gespeichert','Question saved'],'f.defCat':['Eigene Fragen','My questions'],'f.defPack':['Eigene Fragen','My questions'],
+'f.delQ':['Diese Frage löschen?','Delete this question?'],
+'i.title':['Fragen importieren','Import questions'],'i.intro':['CSV (Semikolon, Komma oder Tab) oder JSON. Die erste Zeile enthält die Spaltennamen. Fehlende Auswahl-Antworten ergeben eine Karteikarte.','CSV (semicolon, comma or tab) or JSON. The first row holds the column names. Rows without wrong answers become flashcards.'],
+'i.file':['Datei wählen','Choose file'],'i.paste':['Oder Text einfügen','Or paste text'],'i.check':['Prüfen','Check'],'i.tplCsv':['Vorlage (CSV)','Template (CSV)'],'i.tplJson':['Vorlage (JSON)','Template (JSON)'],
+'i.valid':['Gültig: {n}','Valid: {n}'],'i.errors':['Fehlerhaft: {n}','Invalid: {n}'],'i.dups':['Schon vorhanden: {n}','Already present: {n}'],'i.row':['Zeile {r}: {m}','Row {r}: {m}'],'i.pack':['Paketname','Pack name'],
+'i.do':['Importieren','Import'],'i.done':['{n} Fragen importiert','{n} questions imported'],'i.empty':['Nichts zu importieren.','Nothing to import.'],'i.e.json':['Kein gültiges JSON','Not valid JSON'],
+'i.e.q':['Frage fehlt','question missing'],'i.e.a':['Antwort fehlt','answer missing'],'i.e.w':['Auswahlfrage ohne falsche Antwort','multiple choice without wrong answer'],'i.e.g':['Grad nicht erkannt: {v}','grade not recognised: {v}'],
+'i.e.cols':['Die Spalten „frage“ und „antwort“ fehlen.','The columns “frage” and “antwort” are missing.'],'i.e.nodata':['Keine Daten gefunden.','No data found.'],'i.tplHint':['Vorlage zum Speichern oder Kopieren','Template to save or copy'],
+'e.title':['Fragen exportieren','Export questions'],'e.dl':['Datei speichern','Save file'],'e.copy':['Kopieren','Copy'],'e.copied':['Kopiert','Copied'],'e.none':['Noch keine eigenen Fragen.','No own questions yet.'],
+'e.hint':['Falls das Speichern nicht klappt, den Text kopieren und in eine Datei einfügen.','If saving does not work, copy the text into a file.'],'e.saved':['Datei gespeichert','File saved'],
+'me.title':['Profil','Profile'],'me.name':['Name','Name'],'me.profiles':['Profile auf diesem Gerät','Profiles on this device'],'me.new':['Neues Profil','New profile'],'me.del':['Profil löschen','Delete profile'],
+'me.delQ':['Profil „{n}“ mit allem Fortschritt löschen?','Delete profile “{n}” with all its progress?'],'me.settings':['Einstellungen','Settings'],'me.target':['Zielprüfung','Target exam'],'me.exam':['Prüfungstermin','Exam date'],
+'me.goal':['Tagesziel','Daily goal'],'me.lang':['Sprache','Language'],'me.theme':['Darstellung','Appearance'],'th.auto':['Automatisch','Auto'],'th.light':['Hell','Light'],'th.dark':['Dunkel','Dark'],
+'me.stats':['Statistik','Statistics'],'st.answered':['Beantwortet','Answered'],'st.acc':['Trefferquote','Accuracy'],'st.rounds':['Runden','Rounds'],'st.best':['Beste Serie','Best streak'],'st.mastered':['Gefestigt','Mastered'],'st.xp':['Punkte (XP)','Points (XP)'],
+'me.last14':['Letzte 14 Tage','Last 14 days'],'me.topics':['Nach Themen','By topic'],'me.badges':['Abzeichen','Badges'],'me.history':['Verlauf','History'],'me.noHist':['Noch keine Runde abgeschlossen.','No round finished yet.'],
+'me.backup':['Sicherung','Backup'],'bk.intro':['Alle Daten liegen nur auf diesem Gerät. Speichere gelegentlich eine Sicherung.','All data lives on this device only. Save a backup now and then.'],
+'bk.export':['Sicherung erstellen','Create backup'],'bk.import':['Sicherung wiederherstellen','Restore backup'],'bk.warn':['Das ersetzt alle Daten auf diesem Gerät.','This replaces all data on this device.'],
+'bk.ok':['Sicherung eingespielt','Backup restored'],'bk.err':['Die Sicherung ist nicht lesbar.','The backup could not be read.'],'bk.confirm':['Alle Daten auf diesem Gerät durch die Sicherung ersetzen?','Replace all data on this device with the backup?'],
+'bk.paste':['Sicherungstext einfügen','Paste backup text'],'me.reset':['Fortschritt zurücksetzen','Reset progress'],'me.resetQ':['Fortschritt von „{n}“ zurücksetzen? Profil und Fragen bleiben.','Reset progress of “{n}”? Profile and questions stay.'],
+'me.disc':['Grundlage ist die DTU-Prüfungsordnung PO 2024 (Stand 01.01.2024). Begriffe und Formendetails folgen dem Kukkiwon-Standard und können in deinem Verband abweichen. Übungsprogramm, ersetzt keine Prüfung.','Based on the DTU exam regulations PO 2024 (as of 1 Jan 2024). Terms and form details follow the Kukkiwon standard and may differ in your federation. A practice tool, not a substitute for the exam.'],
+'toast.badge':['Neues Abzeichen: {n}','New badge: {n}'],'toast.profile':['Profil angelegt','Profile created'],'toast.del':['Gelöscht','Deleted'],'toast.reset':['Fortschritt zurückgesetzt','Progress reset'],
+'days.today':['heute','today'],
+};
+let lang='de';
+const t=(k,v)=>{let s=(I18N[k]||[k,k])[lang==='en'?1:0];if(v)for(const x in v)s=s.split('{'+x+'}').join(v[x]);return s};
+const CAT_EN={'Prüfungsordnung':'Exam regulations','Zweikampf & Technik':'Sparring & technique','Poomsae':'Poomsae (forms)','Bruchtest':'Breaking test','Selbstverteidigung':'Self-defence','Theorie & Geist':'Theory & spirit','Verband & Struktur':'Federation & structure','Begriffe & Kommandos':'Terms & commands'};
+const catLabel=c=>lang==='en'&&CAT_EN[c]?CAT_EN[c]:c;
+const ord=n=>{const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0])};
+const gname=i=>{const n=GR[i].n;if(lang!=='en')return n;const m=n.match(/^(\d+)\. (.*)$/);return m?ord(+m[1])+' '+m[2]:n};
+const locale=()=>lang==='en'?'en-GB':'de-DE';
+
+/* ---------- Speicher ---------- */
+const KEY='tkd-trainer-v1';
+let memStore=null;
+function rd(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){}try{return memStore?JSON.parse(memStore):null}catch(e){return null}}
+let DB=rd()||{v:1,lang:(navigator.language||'de').toLowerCase().indexOf('de')===0?'de':'en',theme:'auto',profiles:[],active:null,custom:[],packsOff:{},nextId:1};
+function wr(){const s=JSON.stringify(DB);memStore=s;try{localStorage.setItem(KEY,s)}catch(e){}}
+function fixP(p){p.progress=p.progress||{};p.daily=p.daily||{};p.streak=Object.assign({count:0,best:0,last:'',freezeWeek:''},p.streak);p.rounds=p.rounds||[];p.badges=p.badges||{};
+  p.stats=Object.assign({rounds:0,perfect:0,examPass:0,goalDays:0,own:0},p.stats);p.xp=p.xp||0;p.goal=p.goal||10;p.examDate=p.examDate||'';p.target=p.target||0;p.color=p.color||0;
+  p.cfg=Object.assign({grade:p.target,diff:1,count:10,cat:'Poomsae'},p.cfg)}
+function fixDB(){DB.v=1;DB.custom=DB.custom||[];DB.packsOff=DB.packsOff||{};DB.nextId=DB.nextId||1;DB.profiles=DB.profiles||[];DB.theme=DB.theme||'auto';DB.lang=DB.lang==='en'?'en':'de';
+  DB.profiles.forEach(fixP);if(!DB.profiles.some(p=>p.id===DB.active))DB.active=DB.profiles[0]?DB.profiles[0].id:null}
+fixDB();lang=DB.lang;
+const P=()=>DB.profiles.find(p=>p.id===DB.active);
+const COLORS=['#1b3f94','#b3261e','#1c7a4b','#8a5300','#6b3fa0','#0f766e','#b4236b','#374151'];
+
+/* ---------- Datum ---------- */
+const pad=n=>String(n).padStart(2,'0');
+const ds=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const today=()=>ds(new Date());
+const addDays=(s,n)=>{const a=s.split('-').map(Number);return ds(new Date(a[0],a[1]-1,a[2]+n))};
+const diffDays=(a,b)=>{const x=a.split('-').map(Number),y=b.split('-').map(Number);return Math.round((Date.UTC(y[0],y[1]-1,y[2])-Date.UTC(x[0],x[1]-1,x[2]))/864e5)};
+const weekId=s=>{const a=s.split('-').map(Number);const dt=new Date(Date.UTC(a[0],a[1]-1,a[2]));const dn=dt.getUTCDay()||7;dt.setUTCDate(dt.getUTCDate()+4-dn);const y0=new Date(Date.UTC(dt.getUTCFullYear(),0,1));return dt.getUTCFullYear()+'-'+Math.ceil(((dt-y0)/864e5+1)/7)};
+const fmtDate=s=>{const a=s.split('-').map(Number);return new Date(a[0],a[1]-1,a[2]).toLocaleDateString(locale(),{day:'numeric',month:'short',year:'numeric'})};
+
+/* ---------- Fragenpool inkl. eigener Fragen ---------- */
+let ALL=[],BYID={};
+function customToQ(c){return {id:c.id,fam:c.id,g:c.g,d:c.d,c:c.c,q:c.q,a:c.a,w:c.w||[],x:c.x||'',custom:true,kind:c.kind,accept:[c.a].concat(c.alts||[]),pack:c.pack}}
+function rebuild(){ALL=POOL.slice();DB.custom.forEach(c=>{if(!DB.packsOff[c.pack])ALL.push(customToQ(c))});BYID={};ALL.forEach(q=>{BYID[q.id]=q})}
+rebuild();
+const normTxt=s=>strip(s).replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+function gradeAny(q,raw,choice){
+  if(q.mode==='card')return {s:choice===1?1:0};
+  if(q.custom&&q.mode==='text'){
+    const x=normTxt(raw);if(!x)return {s:0};
+    const ok=q.accept.some(a=>{const n=normTxt(a);if(!n)return false;if(x===n)return true;const tl=n.length<=4?0:n.length<=8?1:2;if(lev(x,n)<=tl)return true;return n.length>=6&&x.indexOf(n)>=0});
+    return {s:ok?1:0};
+  }
+  return grade(q,raw,choice);
+}
+function prep(q,diff){
+  const o=Object.assign({},q);
+  if(q.custom){o.mode=q.kind==='card'?'card':q.kind==='text'?'text':'mc'}
+  else{const canText=!!(q.re||q.fz||q.kw);o.mode='mc';if(canText){if(diff===2)o.mode='text';else if(diff===1&&q.d>=2&&Math.random()<.5)o.mode='text'}}
+  if(o.mode==='mc'){const n=diff===2?5:4;const opts=shuffle([q.a].concat(shuffle(q.w).slice(0,n-1)));o.opts=opts;o.correctIdx=opts.indexOf(q.a)}
+  return o;
+}
+function weighted(pool,count,wf,cap){
+  const cand=pool.map(q=>({q:q,w:Math.max(.01,wf(q))}));
+  const out=[],fams=new Set(),cats={},skipped=[];let tries=0;
+  while(out.length<count&&cand.length&&tries++<4000){
+    const tot=cand.reduce((a,c)=>a+c.w,0);let r=Math.random()*tot,k=0;
+    for(;k<cand.length;k++){r-=cand[k].w;if(r<=0)break}
+    k=Math.min(k,cand.length-1);
+    const q=cand.splice(k,1)[0].q;
+    if(fams.has(q.fam))continue;
+    if(cap&&(cats[q.c]||0)>=Math.ceil(count*cap)){skipped.push(q);continue}
+    fams.add(q.fam);cats[q.c]=(cats[q.c]||0)+1;out.push(q);
+  }
+  for(let i=0;i<skipped.length&&out.length<count;i++){if(!fams.has(skipped[i].fam)){fams.add(skipped[i].fam);out.push(skipped[i])}}
+  return out;
+}
+const PR=id=>P().progress[id];
+const dueList=()=>{const n=today(),p=P();return ALL.filter(q=>p.progress[q.id]&&p.progress[q.id].due<=n).sort((a,b)=>p.progress[a.id].due<p.progress[b.id].due?-1:1)};
+const weakList=()=>{const p=P();return ALL.filter(q=>{const r=p.progress[q.id];return r&&r.wrong>0&&(r.box<=2||r.wrong>r.right)}).sort((a,b)=>{const ra=p.progress[a.id],rb=p.progress[b.id];return (rb.wrong/(rb.right+rb.wrong)+(rb.box<=1?.3:0))-(ra.wrong/(ra.right+ra.wrong)+(ra.box<=1?.3:0))})};
+function select(mode,cfg){
+  const g=cfg.grade,W=[[1,.4,.05],[.3,1,.5],[.05,.5,1]][cfg.diff];
+  const pool=ALL.filter(q=>q.g<=g);
+  const srs=q=>{const r=PR(q.id);return !r?1.5:(r.box<=2?1.3:.7)};
+  const gw=q=>q.g===g?2.4:q.g===g-1?1.5:q.g>=g-3?1.1:.7;
+  if(mode==='exam')return weighted(pool,cfg.count,q=>W[q.d-1]*gw(q),.45);
+  if(mode==='train')return weighted(pool,cfg.count,q=>W[q.d-1]*gw(q)*srs(q),.45);
+  if(mode==='topic')return weighted(pool.filter(q=>q.c===cfg.cat),cfg.count,q=>W[q.d-1]*srs(q),0);
+  if(mode==='review')return shuffle(dueList().slice(0,cfg.count));
+  if(mode==='weak')return shuffle(weakList().slice(0,cfg.count));
+  if(mode==='quick'){const due=dueList().slice(0,5);const fams=new Set(due.map(q=>q.fam));const rest=weighted(pool.filter(q=>!fams.has(q.fam)),5-due.length,q=>gw(q)*srs(q),.6);return shuffle(due.concat(rest))}
+  return [];
+}
+
+/* ---------- Rang, XP, Serie, Abzeichen ---------- */
+const XPT=[0,100,250,450,700,1000,1400,1900,2500,3200,4000];
+const levelOf=xp=>{let L=0;for(let i=0;i<XPT.length;i++)if(xp>=XPT[i])L=i;return L};
+const rank=L=>L===0?(lang==='en'?'10th Kup':'10. Kup'):L===10?(lang==='en'?'1st Dan':'1. Dan'):gname(L-1);
+const lvColors=L=>L===0?['#f3f3ee']:L===10?['#111']:GR[L-1].c;
+const beltBar=(c,big)=>`<div class="beltbar${big?' big':''}" style="background:${c[0]}" aria-hidden="true">${c[1]?`<i style="background:${c[1]};inset:0 auto 0 18%;width:10px;margin:0"></i>`:''}<b></b></div>`;
+const freezeOK=(s,t0)=>s.freezeWeek!==weekId(addDays(t0,-1));
+function streakNow(p){const s=p.streak,t0=today();if(!s.last)return 0;const d=diffDays(s.last,t0);if(d<=1)return s.count;if(d===2&&freezeOK(s,t0))return s.count;return 0}
+function bumpStreak(p){const s=p.streak,t0=today();if(s.last===t0)return;const d=s.last?diffDays(s.last,t0):99;
+  if(d===1)s.count++;else if(d===2&&freezeOK(s,t0)){s.count++;s.freezeWeek=weekId(addDays(t0,-1))}else s.count=1;s.last=t0;s.best=Math.max(s.best,s.count)}
+const mastered=(p,cat)=>ALL.filter(q=>(!cat||q.c===cat)&&p.progress[q.id]&&p.progress[q.id].box>=3).length;
+const BADGES=[
+ {id:'first',g:'1',n:['Erste Runde','First round'],d:['Eine Runde abgeschlossen','Finish one round'],f:p=>p.stats.rounds>=1},
+ {id:'r10',g:'10',n:['Dranbleiber','Keeping at it'],d:['10 Runden abgeschlossen','Finish 10 rounds'],f:p=>p.stats.rounds>=10},
+ {id:'s3',g:'3d',n:['Warmgelaufen','Warmed up'],d:['3 Tage Serie','3-day streak'],f:p=>p.streak.best>=3},
+ {id:'s7',g:'7d',n:['Wochenserie','Week streak'],d:['7 Tage Serie','7-day streak'],f:p=>p.streak.best>=7},
+ {id:'s30',g:'30d',n:['Monatsserie','Month streak'],d:['30 Tage Serie','30-day streak'],f:p=>p.streak.best>=30},
+ {id:'perfect',g:'100',n:['Fehlerfrei','Flawless'],d:['Runde mit mindestens 5 Fragen ohne Fehler','A round of 5+ questions with no mistakes'],f:p=>p.stats.perfect>=1},
+ {id:'exam',g:'✓',n:['Prüfung bestanden','Exam passed'],d:['Eine Prüfungssimulation bestanden','Pass an exam simulation'],f:p=>p.stats.examPass>=1},
+ {id:'cmd',g:'Ap',n:['Kommando-Profi','Command pro'],d:['20 Begriffe und Kommandos gefestigt','20 terms and commands mastered'],f:p=>mastered(p,'Begriffe & Kommandos')>=20},
+ {id:'form',g:'Il',n:['Formenläufer','Form runner'],d:['20 Poomsae-Fragen gefestigt','20 poomsae questions mastered'],f:p=>mastered(p,'Poomsae')>=20},
+ {id:'rules',g:'PO',n:['Regelkundig','Rule-savvy'],d:['20 Fragen zu Prüfungsordnung oder Verband gefestigt','20 questions on exam rules or federation mastered'],f:p=>mastered(p,'Prüfungsordnung')+mastered(p,'Verband & Struktur')>=20},
+ {id:'xp1',g:'1k',n:['Tausend Punkte','A thousand points'],d:['1000 XP gesammelt','Earn 1000 XP'],f:p=>p.xp>=1000},
+ {id:'goal7',g:'7×',n:['Zielstrebig','On target'],d:['Tagesziel an 7 Tagen erreicht','Reach the daily goal on 7 days'],f:p=>p.stats.goalDays>=7},
+ {id:'own',g:'+',n:['Eigene Frage','Own question'],d:['Erste eigene Frage angelegt','Create your first own question'],f:p=>p.stats.own>=1},
+];
+const bname=b=>b.n[lang==='en'?1:0],bdesc=b=>b.d[lang==='en'?1:0];
+function checkBadges(p){const out=[];BADGES.forEach(b=>{if(!p.badges[b.id]&&b.f(p)){p.badges[b.id]=today();out.push(b)}});return out}
+
+/* ---------- Zustand ---------- */
+const ui={screen:'main',tab:'home',learn:'',cat:{view:'list',q:'',cat:'',own:false,limit:40},form:null,formErr:[],imp:{text:'',name:'',res:null,pack:''},exp:{fmt:'json'},ob:null,newProf:false,bkShow:false,bkText:''};
+let Q=null;
+
+/* ---------- Hilfen ---------- */
+const ICON={
+ home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+ learn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5c3-1 6-1 10 1 4-2 7-2 10-1v14c-3-1-6-1-10 1-4-2-7-2-10-1z"/><path d="M12 6v14"/></svg>',
+ cat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h12M4 12h8M4 18h8"/><path d="M18 14v6M15 17h6"/></svg>',
+ me:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
+ flame:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-10z"/></svg>',
+ star:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3 7 7 .6-5.3 4.7L18.3 22 12 18l-6.3 4 1.6-7.7L2 9.6 9 9z"/></svg>'
+};
+function toast(msg){const h=$('#toastHost');h.innerHTML=`<div class="toast" role="status">${esc(msg)}</div>`;clearTimeout(toast.tm);toast.tm=setTimeout(()=>{h.innerHTML=''},3200)}
+function ask(msg,okLabel,fn){const d=document.createElement('div');d.className='ov';d.innerHTML=`<div class="dlg" role="dialog" aria-modal="true"><p>${esc(msg)}</p><div class="row"><button type="button" class="btn danger" data-y>${esc(okLabel)}</button><button type="button" class="btn ghost" data-n>${esc(t('cancel'))}</button></div></div>`;document.body.appendChild(d);d.querySelector('[data-n]').onclick=()=>d.remove();d.querySelector('[data-y]').onclick=()=>{d.remove();fn()};d.querySelector('[data-n]').focus()}
+function copyText(txt,ta){const done=()=>toast(t('e.copied'));try{navigator.clipboard.writeText(txt).then(done,()=>{if(ta){ta.select();try{document.execCommand('copy');done()}catch(e){}}})}catch(e){if(ta){ta.select();try{document.execCommand('copy');done()}catch(x){}}}}
+function download(name,text,mime){try{const b=new Blob([text],{type:mime||'text/plain'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);toast(t('e.saved'))}catch(e){}}
+const avatar=(p,size)=>`<span class="avatar" style="background:${COLORS[p.color||0]};${size?`width:${size}px;height:${size}px;`:''}" aria-hidden="true">${esc((p.name||'?').trim().charAt(0).toUpperCase())}</span>`;
+function gradeSelect(sel,attrs){let h='<select class="sel" '+attrs+'>';[[0,8,'Kup'],[9,11,'Poom / Dan'],[12,17,lang==='en'?'Teacher grades':'Lehrergrade']].forEach(([a,b,l])=>{h+=`<optgroup label="${esc(l)}">`;for(let i=a;i<=b;i++)h+=`<option value="${i}"${i===sel?' selected':''}>${esc(gname(i))}</option>`;h+='</optgroup>'});return h+'</select>'}
+const ring=(frac,label)=>{const C=2*Math.PI*34;return `<div class="ring"><svg viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="34" fill="none" stroke="var(--line)" stroke-width="8"/><circle cx="42" cy="42" r="34" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(C*Math.min(1,frac)).toFixed(1)} ${C.toFixed(1)}"/></svg><b>${label}</b></div>`};
+function applyTheme(){const r=document.documentElement;if(DB.theme==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',DB.theme)}
+function langToggle(){return `<div class="langs" role="group" aria-label="Language"><button type="button" data-a="lang" data-v="de" aria-pressed="${lang==='de'}">DE</button><button type="button" data-a="lang" data-v="en" aria-pressed="${lang==='en'}">EN</button></div>`}
+const topbar=()=>`<div class="top"><h1>${esc(t('app.name'))}</h1>${langToggle()}</div>`;
+const seg=(items,cur,act,key)=>`<div class="seg">${items.map(([v,l,d])=>`<button type="button" data-a="${act}" data-k="${key}" data-v="${v}" aria-pressed="${String(cur)===String(v)}"><b>${esc(l)}</b>${d?`<small>${esc(d)}</small>`:''}</button>`).join('')}</div>`;
+
+/* ---------- Render-Einstieg ---------- */
+function render(){
+  document.documentElement.lang=lang;applyTheme();
+  const nav=$('#nav');
+  if(!DB.profiles.length||ui.screen==='onboard'){nav.hidden=true;return renderOnboard()}
+  if(ui.screen==='quiz'){nav.hidden=true;return renderQuiz()}
+  if(ui.screen==='result'){nav.hidden=true;return renderResult()}
+  nav.hidden=false;renderNav();
+  ({home:renderHome,learn:renderLearn,cat:renderCat,me:renderMe})[ui.tab]();
+}
+function renderNav(){$('#nav').setAttribute('aria-label',t('app.name'));$('#nav').innerHTML=[['home'],['learn'],['cat'],['me']].map(a=>`<button type="button" data-a="tab" data-v="${a[0]}" ${ui.tab===a[0]?'aria-current="page"':''}>${ICON[a[0]]}<span>${esc(t('nav.'+a[0]))}</span></button>`).join('')}
+
+/* ---------- Onboarding ---------- */
+function renderOnboard(){
+  if(!ui.ob)ui.ob={name:'',color:0,target:1,goal:10};
+  const o=ui.ob,first=!DB.profiles.length;
+  app.innerHTML=`<div class="stack">${topbar()}
+  <div class="card stack"><h2>${esc(t('ob.title'))}</h2><p class="muted">${esc(t('ob.intro'))}</p>
+   <label class="fld" for="ob-name"><span class="label">${esc(t('ob.name'))}</span><input type="text" id="ob-name" data-o="name" value="${esc(o.name)}" placeholder="${esc(t('ob.nameDefault'))}" maxlength="30" autocomplete="off"></label>
+   <div class="fld"><span class="label">${esc(t('ob.avatar'))}</span><div class="avs">${COLORS.map((c,i)=>`<button type="button" data-a="obcolor" data-v="${i}" aria-pressed="${o.color===i}" aria-label="${i+1}">${avatar({name:o.name||t('ob.nameDefault'),color:i},38)}</button>`).join('')}</div></div>
+   <label class="fld" for="ob-target"><span class="label">${esc(t('ob.target'))}</span>${gradeSelect(o.target,'id="ob-target" data-o="target"')}</label>
+   <div class="fld"><span class="label">${esc(t('ob.goal'))}</span>${seg([[5,'5'],[10,'10'],[20,'20'],[30,'30']],o.goal,'obgoal','goal')}</div>
+   <div class="row"><button type="button" class="btn" data-a="obdone">${esc(t('ob.start'))}</button>${first?'':`<button type="button" class="btn ghost" data-a="obcancel">${esc(t('cancel'))}</button>`}</div>
+  </div>
+  ${first?`<details><summary>${esc(t('ob.restore'))}</summary><div class="stack" style="margin-top:10px"><p class="muted">${esc(t('bk.paste'))}</p><textarea id="bk-in" class="copybox" data-o="bk"></textarea><button type="button" class="btn ghost" data-a="bkrestore">${esc(t('bk.import'))}</button></div></details>`:''}
+  </div>`;
+}
+
+/* ---------- Start ---------- */
+function examDays(p){return p.examDate?diffDays(today(),p.examDate):null}
+function renderHome(){
+  const p=P(),L=levelOf(p.xp),nx=XPT[L+1];
+  const due=dueList().length,done=p.daily[today()]||0,goal=p.goal,sn=streakNow(p);
+  const frac=nx?(p.xp-XPT[L])/(nx-XPT[L]):1;
+  const ed=examDays(p);
+  let exam='';
+  if(ed!==null){
+    const rem=ALL.filter(q=>q.g<=p.target&&!(p.progress[q.id]&&p.progress[q.id].box>=3)).length;
+    let line=ed>0?t('home.examIn',{g:gname(p.target),n:ed}):ed===0?t('home.examToday',{g:gname(p.target)}):t('home.examPast');
+    exam=`<div class="card stack"><div class="label">${esc(t('me.exam'))}</div><b>${esc(line)}</b>${ed>0?`<p class="muted">${esc(t('home.plan',{n:rem,p:Math.max(1,Math.ceil(rem/ed))}))}</p>`:''}</div>`;
+  }
+  const b=BADGES.map(x=>({x,on:!!p.badges[x.id]})).sort((a,c)=>c.on-a.on).slice(0,6);
+  const goalLine=done>=goal?t('home.goalDone'):t('home.goalLeft',{n:goal-done});
+  const streakLine=sn>0?(streakNow(p)&&p.streak.last!==today()&&done<goal?t('home.streakRisk'):t('home.streakDays',{n:sn})):t('home.streakRisk');
+  app.innerHTML=`<div class="stack">${topbar()}
+  <div class="card hero">
+    <div class="row sp"><div class="who">${avatar(p)}<div><span class="label">${esc(t('home.hello'))}</span><b>${esc(p.name)}</b></div></div>
+     <div class="row"><span class="stat flame" title="${esc(t('home.streak'))}">${ICON.flame}${sn}</span><span class="stat xp" title="XP">${ICON.star}${p.xp}</span></div></div>
+    <div class="stack" style="gap:8px">${beltBar(lvColors(L),true)}
+     <div class="row sp"><span class="rankname">${esc(rank(L))}</span><span class="muted">${nx?esc(t('home.toNext',{xp:nx-p.xp,rank:rank(L+1)})):esc(t('home.max'))}</span></div>
+     <div class="prog"><div style="width:${Math.round(frac*100)}%"></div></div>
+     <span class="sub">${esc(t('home.rankNote'))}</span></div>
+  </div>
+  <div class="card row" style="flex-wrap:nowrap;gap:16px">${ring(goal?done/goal:0,done+'/'+goal)}
+    <div class="grow stack" style="gap:4px"><b>${esc(t('home.goal'))}</b><span class="muted">${esc(goalLine)}</span><span class="sub">${esc(streakLine)}</span><span class="sub">${esc(t('home.freeze'))}</span></div></div>
+  <div class="tiles">
+    ${due>0?`<button type="button" class="tile main" data-a="go" data-m="review"><b>${esc(t('home.review'))}</b><span>${esc(t('home.reviewSub',{n:due}))}</span></button>`
+          :`<button type="button" class="tile main" data-a="go" data-m="quick"><b>${esc(t('home.quick'))}</b><span>${esc(t('home.quickSub'))}</span></button>`}
+    <button type="button" class="tile" data-a="go" data-m="exam"><b>${esc(t('home.exam'))}</b><span>${esc(t('home.examSub'))}</span></button>
+    <button type="button" class="tile" data-a="go" data-m="weak"><b>${esc(t('home.weak'))}</b><span>${esc(t('home.weakSub'))}</span></button>
+    <button type="button" class="tile" data-a="go" data-m="topic"><b>${esc(t('home.topic'))}</b><span>${esc(t('home.topicSub'))}</span></button>
+    ${due>0?`<button type="button" class="tile" data-a="go" data-m="quick"><b>${esc(t('home.quick'))}</b><span>${esc(t('home.quickSub'))}</span></button>`:`<button type="button" class="tile" data-a="go" data-m="train"><b>${esc(t('m.train'))}</b><span>${esc(t('home.noDue'))}</span></button>`}
+  </div>
+  ${exam}
+  <div class="card stack"><div class="row sp"><h3>${esc(t('home.badges'))}</h3><button type="button" class="btn ghost sm" data-a="tab" data-v="me">${esc(t('nav.me'))}</button></div>
+    <div class="badges">${b.map(o=>badgeHTML(o.x,o.on)).join('')}</div></div>
+  </div>`;
+}
+const badgeHTML=(b,on)=>`<div class="badge${on?'':' off'}" title="${esc(bdesc(b))}"><div class="coin" aria-hidden="true">${esc(b.g)}</div><span>${esc(bname(b))}</span></div>`;
+
+/* ---------- Lernen ---------- */
+function renderLearn(){
+  const modes=['exam','train','review','weak','topic','quick'];
+  app.innerHTML=`<div class="stack">${topbar()}<h2>${esc(t('learn.title'))}</h2>${modes.map(modeCard).join('')}</div>`;
+}
+function modeCard(m){
+  const p=P(),c=p.cfg,open=ui.learn===m;
+  const due=m==='review'?dueList().length:0,weak=m==='weak'?weakList().length:0;
+  const tag=m==='review'?`<span class="pill">${esc(t('cfg.due',{n:due}))}</span>`:m==='weak'?`<span class="pill">${esc(t('cfg.weakN',{n:weak}))}</span>`:'';
+  let body='';
+  if(open){
+    const f=[];
+    if(m==='exam'||m==='train'||m==='topic')f.push(`<label class="fld"><span class="label">${esc(t('cfg.grade'))}</span>${gradeSelect(c.grade,'data-c="cfg" data-k="grade"')}</label>`);
+    if(m==='topic'){const cats=[...new Set(ALL.map(q=>q.c))];f.push(`<label class="fld"><span class="label">${esc(t('cfg.cat'))}</span><select class="sel" data-c="cfg" data-k="cat">${cats.map(x=>`<option value="${esc(x)}"${x===c.cat?' selected':''}>${esc(catLabel(x))}</option>`).join('')}</select></label>`)}
+    if(m==='exam'||m==='train'||m==='topic')f.push(`<div class="fld"><span class="label">${esc(t('cfg.diff'))}</span>${seg([0,1,2].map(i=>[i,t('diff.'+i),t('diff.'+i+'d')]),c.diff,'cfgset','diff')}</div>`);
+    if(m==='exam'||m==='train'||m==='topic'||m==='review'||m==='weak')f.push(`<div class="fld"><span class="label">${esc(t('cfg.count'))}</span>${seg([[10,'10'],[15,'15'],[20,'20']],c.count,'cfgset','count')}</div>`);
+    if(m==='review'&&!due)f.push(`<p class="muted">${esc(t('cfg.noDue'))}</p>`);
+    if(m==='weak'&&!weak)f.push(`<p class="muted">${esc(t('cfg.noWeak'))}</p>`);
+    const dis=(m==='review'&&!due)||(m==='weak'&&!weak);
+    body=`<div class="mbody">${f.join('')}<div><button type="button" class="btn" data-a="start" data-m="${m}" ${dis?'disabled':''}>${esc(t('cfg.start'))}</button></div></div>`;
+  }
+  return `<section class="card mcard"><button type="button" class="mhead" data-a="open" data-m="${m}" aria-expanded="${open}"><span class="grow"><b>${esc(t('m.'+m))}</b><span class="muted">${esc(t('m.'+m+'.d'))}</span>${tag?`<br>${tag}`:''}</span><span class="chev" aria-hidden="true">›</span></button>${body}</section>`;
+}
+function startQuiz(mode){
+  const p=P(),c=p.cfg;
+  const cfg={grade:c.grade,diff:c.diff,count:c.count,cat:c.cat};
+  if(mode==='quick'){cfg.count=5;cfg.diff=1;cfg.grade=p.target}
+  if(mode==='review'||mode==='weak')cfg.diff=1;
+  const base=select(mode,cfg);
+  if(!base.length){toast(t('q.none'));return}
+  Q={mode,cfg,qs:base.map(q=>prep(q,cfg.diff)),i:0,res:[],answered:false,sel:-1,xp:0,lv:levelOf(p.xp),goalHit:false,flags:[]};
+  ui.screen='quiz';render();window.scrollTo(0,0);
+}
+
+/* ---------- Quiz ---------- */
+function renderQuiz(){
+  const q=Q.qs[Q.i],n=Q.qs.length,mc=q.mode==='mc',card=q.mode==='card';
+  app.innerHTML=`<div class="stack">
+  <div class="row sp"><span class="label">${esc(t('m.'+Q.mode))}${Q.mode==='exam'||Q.mode==='train'||Q.mode==='topic'?' · '+esc(gname(Q.cfg.grade)):''}</span><button type="button" class="btn ghost sm" data-a="quit">${esc(t('q.quit'))}</button></div>
+  <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${Q.i}"><div style="width:${Q.i/n*100}%"></div></div>
+  <div class="card stack" id="qcard">
+   <div class="qhead"><span>${esc(t('q.of',{i:Q.i+1,n:n}))}</span><span>${esc(catLabel(q.c))}</span></div>
+   <p class="q" id="qtext">${esc(q.q)}</p>
+   ${mc?`<div class="opts" role="radiogroup" aria-labelledby="qtext">${q.opts.map((o,i)=>`<button type="button" class="opt" role="radio" aria-checked="false" data-a="pick" data-v="${i}"><span class="k">${i+1}</span><span>${esc(o)}</span></button>`).join('')}</div>`
+      :card?`<div id="reveal"></div>`
+      :`<label class="fld" for="ans"><span class="label">${esc(t('q.yourAnswer'))}</span><textarea id="ans" rows="3" placeholder="${esc(q.fz?t('q.phKo'):t('q.phText'))}" autocomplete="off" spellcheck="false"></textarea></label>`}
+   <div class="row sp" id="acts">${card?`<span></span><button type="button" class="btn" data-a="reveal">${esc(t('q.show'))}</button>`:`<button type="button" class="btn ghost" data-a="skip">${esc(t('q.skip'))}</button><button type="button" class="btn" id="go" data-a="submit" ${mc?'disabled':''}>${esc(t('q.answer'))}</button>`}</div>
+   <div id="fb" aria-live="polite"></div>
+  </div></div>`;
+  if(q.mode==='text'){const a=$('#ans');a.focus();a.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submit(false)}}}
+}
+const verdict=s=>s>=1?{k:'lab.good',cls:'good'}:s>=.6?{k:'lab.passed',cls:'good'}:s>=.3?{k:'lab.flawed',cls:'mid'}:{k:'lab.failed',cls:'bad'};
+function submit(skip,known){
+  if(Q.answered)return;
+  const q=Q.qs[Q.i];
+  const raw=q.mode==='text'?$('#ans').value:'';
+  if(q.mode==='mc'&&Q.sel<0&&!skip)return;
+  Q.answered=true;
+  const r=skip?{s:0}:q.mode==='card'?gradeAny(q,'',known?1:0):gradeAny(q,raw,Q.sel);
+  const v=verdict(r.s),ok=r.s>=1;
+  const rec={q,s:r.s,mine:skip?'—':q.mode==='mc'?q.opts[Q.sel]:q.mode==='card'?(known?t('q.knew'):t('q.knewNot')):raw.trim()};
+  Q.res[Q.i]=rec;
+  if(q.mode==='mc')app.querySelectorAll('.opt').forEach((b,i)=>{b.disabled=true;if(i===q.correctIdx)b.classList.add('ok');else if(i===Q.sel)b.classList.add('no')});
+  else if(q.mode==='text')$('#ans').disabled=true;
+  const last=Q.i===Q.qs.length-1;
+  const partial=r.hits!=null&&r.s>0&&r.s<1?`<p>${esc(t('q.pts',{h:r.hits,n:r.need}))}</p>`:'';
+  const comment=ok?t('q.fbOk'):r.s>=.6?t('q.fbMostly'):r.s>0?t('q.fbPart'):t('q.fbNo');
+  const canOvr=q.mode==='text'&&!ok&&!skip;
+  if(q.mode==='card'){$('#reveal').innerHTML=`<div class="fb ${v.cls}" style="margin-bottom:0"><span class="ans">${esc(q.a)}</span></div>`}
+  $('#acts').hidden=true;
+  $('#fb').innerHTML=`<div class="fb ${v.cls}"><div class="row sp"><span class="chip">${esc(t(v.k))}</span><span class="label">${esc(t('q.rating',{v:r.s>=.6?t('yes'):t('no')}))}</span></div>
+    <p>${esc(comment)}</p>${partial}
+    ${!ok&&q.mode!=='card'?`<p class="ans">${esc(t('q.correct',{a:q.a}))}</p>`:''}
+    ${q.x?`<p>${esc(q.x)}</p>`:''}
+    <div class="row sp">${canOvr?`<button type="button" class="btn ghost sm" data-a="override">${esc(t('q.override'))}</button>`:'<span></span>'}<button type="button" class="btn" id="nextBtn" data-a="next">${esc(last?t('q.result'):t('q.next'))}</button></div></div>`;
+  const nb=$('#nextBtn');if(nb)nb.focus({preventScroll:true});
+  $('#qcard').scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function override(){const rec=Q.res[Q.i];if(!rec)return;rec.s=1;rec.self=true;const f=document.querySelector('.fb');f.className='fb good';f.querySelector('.chip').textContent=t('lab.good');f.querySelector('.label').textContent=t('q.rating',{v:t('yes')});const b=document.querySelector('[data-a="override"]');if(b){b.textContent=t('q.overridden');b.disabled=true}}
+/* SRS und XP */
+const INT=[0,1,3,7,14,30];
+function commit(rec){
+  if(rec.done)return;rec.done=true;
+  const p=P(),q=rec.q,right=rec.s>=.6;
+  const r=p.progress[q.id]||(p.progress[q.id]={box:0,due:today(),seen:0,right:0,wrong:0,last:today()});
+  r.seen++;if(right){r.right++;r.box=Math.min(5,r.box+1)}else{r.wrong++;r.box=1}r.due=addDays(today(),INT[r.box]);r.last=today();
+  const gain=Math.round(({1:10,2:15,3:20}[q.d]||10)*(rec.s>=1?1:rec.s>=.6?.6:0));
+  Q.xp+=gain;p.xp+=gain;
+  const t0=today(),before=p.daily[t0]||0;p.daily[t0]=before+1;
+  if(before<p.goal&&before+1>=p.goal){bumpStreak(p);p.stats.goalDays++;Q.xp+=15;p.xp+=15;Q.goalHit=true}
+  wr();
+}
+function nextQ(){
+  const rec=Q.res[Q.i];if(rec)commit(rec);
+  if(Q.i<Q.qs.length-1){Q.i++;Q.answered=false;Q.sel=-1;renderQuiz();window.scrollTo(0,0)}else finishQuiz();
+}
+function quitQuiz(){const any=Q.res.filter(Boolean);any.forEach(commit);ui.screen='main';Q=null;render();window.scrollTo(0,0)}
+function finishQuiz(){
+  const p=P(),recs=Q.res.filter(Boolean);recs.forEach(commit);
+  const n=recs.length;if(!n){quitQuiz();return}
+  const pct=Math.round(recs.reduce((a,r)=>a+r.s,0)/n*100);
+  const ja=recs.filter(r=>r.s>=.6).length,pass=ja>n/2;
+  const flags=[];
+  if(n>=5&&recs.every(r=>r.s>=1)){p.xp+=20;Q.xp+=20;p.stats.perfect++;flags.push('r.perfect')}
+  if(Q.mode==='exam'&&pass){p.xp+=10;Q.xp+=10;p.stats.examPass++;flags.push('r.passBonus')}
+  if(Q.goalHit)flags.push('r.goalBonus');
+  p.stats.rounds++;p.rounds.unshift({ts:Date.now(),mode:Q.mode,grade:Q.cfg.grade,n,pct,xp:Q.xp});p.rounds=p.rounds.slice(0,30);
+  const nb=checkBadges(p);wr();
+  const cats={};recs.forEach(r=>{const c=r.q.c;(cats[c]=cats[c]||{s:0,n:0});cats[c].s+=r.s;cats[c].n++});
+  Q.sum={n,pct,ja,pass,flags,newBadges:nb,newLevel:levelOf(p.xp)>Q.lv?levelOf(p.xp):null,cats,wrong:recs.filter(r=>r.s<1)};
+  ui.screen='result';render();window.scrollTo(0,0);
+}
+function renderResult(){
+  const S=Q.sum,m=Q.mode,exam=m==='exam';
+  const nt=note(S.pct);
+  app.innerHTML=`<div class="stack">
+  <div class="card stack pop"><div class="label">${esc(exam?t('r.exam'):t('r.round'))} · ${esc(t('m.'+m))}</div>
+   ${exam?`<div class="big">${lang==='de'?esc(t('r.grade',{n:nt,t:t('nt.'+nt)})):S.pct+' %'}</div><div class="verdict ${S.pass?'good':'bad'}">${esc(S.pass?t('r.passed'):t('r.failed'))}</div>`:`<div class="big">${S.pct} %</div>`}
+   <p class="muted">${esc(t('r.score',{ja:S.ja,n:S.n,pct:S.pct}))}</p>${exam?`<p class="sub">${esc(t('r.passHint'))}</p>`:''}
+   <div class="xpline"><span class="chip" style="color:var(--accent)">+${Q.xp} XP</span>${S.flags.map(f=>`<span class="chip" style="color:var(--good)">${esc(t(f))}</span>`).join('')}</div>
+   ${S.newLevel!=null?`<div class="fb good"><b>${esc(t('r.lvl',{rank:rank(S.newLevel)}))}</b>${beltBar(lvColors(S.newLevel),true)}</div>`:''}
+   ${S.newBadges.map(b=>`<div class="fb good"><b>${esc(t('r.badge',{n:bname(b)}))}</b><span>${esc(bdesc(b))}</span></div>`).join('')}
+  </div>
+  <div class="card stack"><h3>${esc(t('r.byTopic'))}</h3>${Object.keys(S.cats).map(c=>{const v=S.cats[c],pc=Math.round(v.s/v.n*100);return `<div class="cat"><span>${esc(catLabel(c))}</span><div class="prog"><div style="width:${pc}%;background:${pc>=60?'var(--good)':'var(--bad)'}"></div></div><span>${pc} %</span></div>`}).join('')}</div>
+  ${S.wrong.length?`<div class="card stack"><h3>${esc(t('r.learn'))} (${S.wrong.length})</h3><div class="rev stack">${S.wrong.map(r=>`<article><b>${esc(r.q.q)}</b><span class="mine">${esc(t('r.yours',{a:r.mine}))}</span><span class="ans">${esc(t('r.right',{a:r.q.a}))}</span>${r.q.x?`<span class="muted">${esc(r.q.x)}</span>`:''}</article>`).join('')}</div></div>`:`<div class="card"><b>${esc(t('r.noErr'))}</b></div>`}
+  <div class="row"><button type="button" class="btn" data-a="again">${esc(t('r.again'))}</button><button type="button" class="btn ghost" data-a="finish">${esc(t('r.home'))}</button></div></div>`;
+}
+
+/* ---------- Fragen: Katalog, Formular, Import, Export ---------- */
+const packNames=()=>[...new Set(DB.custom.map(c=>c.pack))];
+const browseList=()=>POOL.concat(DB.custom.map(customToQ));
+function catFilter(){const f=ui.cat,qn=strip(f.q).trim();return browseList().filter(q=>(!f.cat||q.c===f.cat)&&(!f.own||q.custom)&&(!qn||strip(q.q).indexOf(qn)>=0||strip(q.a).indexOf(qn)>=0))}
+function catResults(){
+  const list=catFilter(),lim=ui.cat.limit;
+  return `<p class="muted">${esc(t('cat.hits',{n:list.length}))}</p><div class="stack">${list.slice(0,lim).map(q=>`<details class="${q.custom&&DB.packsOff[q.pack]?'dim':''}"><summary>${esc(q.q)}</summary><div class="stack" style="margin-top:8px">
+   <div><span class="label">${esc(t('cat.answer'))}</span><div class="ans">${esc(q.a)}</div></div>
+   ${q.x?`<div><span class="label">${esc(t('cat.expl'))}</span><div>${esc(q.x)}</div></div>`:''}
+   <div class="sub">${esc(t('cat.meta',{c:catLabel(q.c),g:gname(q.g),d:q.d}))}${q.custom?' · '+esc(q.pack):''}</div>
+   ${q.custom?`<div class="row"><button type="button" class="btn ghost sm" data-a="qedit" data-id="${esc(q.id)}">${esc(t('edit'))}</button><button type="button" class="btn ghost sm" data-a="qdel" data-id="${esc(q.id)}">${esc(t('delete'))}</button></div>`:''}
+  </div></details>`).join('')}</div>${list.length>lim?`<button type="button" class="btn ghost" data-a="more">${esc(t('cat.more'))}</button>`:''}`;
+}
+function renderCat(){
+  const v=ui.cat.view;
+  if(v==='form')return renderForm();
+  if(v==='import')return renderImport();
+  if(v==='export')return renderExport();
+  const cats=[...new Set(browseList().map(q=>q.c))];
+  const packs=packNames();
+  app.innerHTML=`<div class="stack">${topbar()}<h2>${esc(t('cat.title'))}</h2>
+  <div class="row"><button type="button" class="btn" data-a="qnew">${esc(t('cat.new'))}</button><button type="button" class="btn ghost" data-a="cview" data-v="import">${esc(t('cat.import'))}</button><button type="button" class="btn ghost" data-a="cview" data-v="export">${esc(t('cat.export'))}</button></div>
+  <div class="card stack"><h3>${esc(t('cat.packs'))}</h3>
+   <div class="row sp"><div class="grow"><b>${esc(t('cat.builtin'))}</b><div class="sub">${esc(t('cat.count',{n:POOL.length}))}</div></div></div>
+   ${packs.map(pk=>{const n=DB.custom.filter(c=>c.pack===pk).length,on=!DB.packsOff[pk];return `<div class="row sp" style="flex-wrap:nowrap"><div class="grow"><b>${esc(pk)}</b><div class="sub">${esc(t('cat.count',{n:n}))}</div></div><button type="button" class="sw-toggle" role="switch" aria-checked="${on}" aria-label="${esc(t('cat.enable'))}: ${esc(pk)}" data-a="packtoggle" data-p="${esc(pk)}"></button><button type="button" class="btn ghost sm" data-a="packdel" data-p="${esc(pk)}">${esc(t('delete'))}</button></div>`}).join('')}
+   <p class="sub">${esc(t('cat.lang'))}</p></div>
+  <div class="card stack"><label class="fld" for="cq"><span class="label">${esc(t('cat.search'))}</span><input type="search" id="cq" data-s="q" value="${esc(ui.cat.q)}" autocomplete="off"></label>
+   <div class="row"><select class="sel" id="ccat" data-s="cat" style="flex:1;min-width:150px" aria-label="${esc(t('cfg.cat'))}"><option value="">${esc(t('cat.all'))}</option>${cats.map(c=>`<option value="${esc(c)}"${ui.cat.cat===c?' selected':''}>${esc(catLabel(c))}</option>`).join('')}</select>
+   <label class="row" style="flex-wrap:nowrap"><input type="checkbox" id="cown" data-s="own" ${ui.cat.own?'checked':''}> <span>${esc(t('cat.ownOnly'))}</span></label></div>
+   <div id="catres" class="stack">${catResults()}</div></div></div>`;
+}
+function blankForm(){const p=P();const last=DB.custom.length?DB.custom[DB.custom.length-1]:null;return {id:null,kind:'mc',q:'',a:'',w1:'',w2:'',w3:'',alts:'',x:'',c:last?last.c:t('f.defCat'),g:last?last.g:p.target,d:last?last.d:2,pack:last?last.pack:t('f.defPack')}}
+function renderForm(){
+  const f=ui.form||(ui.form=blankForm());
+  const packs=packNames(),cats=[...new Set(browseList().map(q=>q.c))];
+  app.innerHTML=`<div class="stack">${topbar()}<div class="row"><button type="button" class="btn ghost sm" data-a="cview" data-v="list">${esc(t('back'))}</button><h2>${esc(f.id?t('f.titleEdit'):t('f.titleNew'))}</h2></div>
+  <form class="card stack" id="qform" novalidate>
+   <div class="fld"><span class="label">${esc(t('f.kind'))}</span>${seg([['mc',t('f.k.mc'),t('f.k.mc.d')],['text',t('f.k.text'),t('f.k.text.d')],['card',t('f.k.card'),t('f.k.card.d')]],f.kind,'fkind','kind')}</div>
+   <label class="fld" for="f-q"><span class="label">${esc(t('f.q'))}</span><textarea id="f-q" data-f="q" rows="3">${esc(f.q)}</textarea></label>
+   <label class="fld" for="f-a"><span class="label">${esc(t('f.a'))}</span><input type="text" id="f-a" data-f="a" value="${esc(f.a)}" autocomplete="off"></label>
+   ${f.kind==='mc'?`<div class="fld"><span class="label">${esc(t('f.w'))}</span>${['w1','w2','w3'].map(k=>`<input type="text" id="f-${k}" data-f="${k}" value="${esc(f[k])}" aria-label="${esc(t('f.'+k))}" placeholder="${esc(t('f.'+k))}" autocomplete="off">`).join('')}</div>`:''}
+   ${f.kind==='text'?`<label class="fld" for="f-alts"><span class="label">${esc(t('f.alts'))}</span><input type="text" id="f-alts" data-f="alts" value="${esc(f.alts)}" autocomplete="off"></label>`:''}
+   <label class="fld" for="f-x"><span class="label">${esc(t('f.x'))}</span><textarea id="f-x" data-f="x" rows="2">${esc(f.x)}</textarea></label>
+   <label class="fld" for="f-c"><span class="label">${esc(t('f.c'))}</span><input type="text" id="f-c" data-f="c" list="dl-c" value="${esc(f.c)}" autocomplete="off"><datalist id="dl-c">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></label>
+   <div class="row" style="align-items:flex-end"><label class="fld grow" for="f-g"><span class="label">${esc(t('f.g'))}</span>${gradeSelect(f.g,'id="f-g" data-f="g"')}</label>
+    <label class="fld grow" for="f-d"><span class="label">${esc(t('f.d'))}</span><select class="sel" id="f-d" data-f="d">${[1,2,3].map(i=>`<option value="${i}"${+f.d===i?' selected':''}>${esc(t('diff.'+(i-1)))}</option>`).join('')}</select></label></div>
+   <label class="fld" for="f-pack"><span class="label">${esc(t('f.pack'))}</span><input type="text" id="f-pack" data-f="pack" list="dl-p" value="${esc(f.pack)}" autocomplete="off"><datalist id="dl-p">${packs.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></label>
+   ${ui.formErr.length?`<div class="errs" role="alert">${ui.formErr.map(e=>`<span>${esc(e)}</span>`).join('')}</div>`:''}
+   <div class="row"><button type="button" class="btn" data-a="fsave">${esc(t('save'))}</button>${f.id?'':`<button type="button" class="btn ghost" data-a="fsave" data-more="1">${esc(t('f.saveMore'))}</button>`}</div>
+  </form></div>`;
+}
+function saveForm(more){
+  const f=ui.form,err=[],q=f.q.trim(),a=f.a.trim();
+  const w=['w1','w2','w3'].map(k=>f[k].trim()).filter(Boolean);
+  if(!q)err.push(t('f.errQ'));if(!a)err.push(t('f.errA'));
+  if(f.kind==='mc'){if(!w.length)err.push(t('f.errW'));if(w.some(x=>normTxt(x)===normTxt(a)))err.push(t('f.errWsame'))}
+  const nq=normTxt(q);
+  if(q&&browseList().some(x=>x.id!==f.id&&normTxt(x.q)===nq))err.push(t('f.errDup'));
+  ui.formErr=err;
+  if(err.length){render();return}
+  const c={id:f.id||('u'+DB.nextId++),kind:f.kind,q,a,w:f.kind==='mc'?w:[],alts:f.kind==='text'?f.alts.split('|').map(s=>s.trim()).filter(Boolean):[],x:f.x.trim(),c:(f.c||'').trim()||t('f.defCat'),g:+f.g,d:+f.d,pack:(f.pack||'').trim()||t('f.defPack')};
+  if(f.id){const i=DB.custom.findIndex(x=>x.id===f.id);if(i>=0)DB.custom[i]=c}else{DB.custom.push(c);P().stats.own++;const nb=checkBadges(P());nb.forEach(b=>toast(t('toast.badge',{n:bname(b)})))}
+  wr();rebuild();toast(t('f.saved'));
+  if(more){ui.form=Object.assign(blankForm(),{kind:f.kind,c:c.c,g:c.g,d:c.d,pack:c.pack});ui.formErr=[];render();const el=$('#f-q');if(el)el.focus()}
+  else{ui.form=null;ui.cat.view='list';render()}
+}
+/* Import */
+const SYN={q:['frage','question','q'],a:['antwort','answer','a','richtige antwort','correct'],w1:['falsch1','wrong1','falsche antwort 1'],w2:['falsch2','wrong2','falsche antwort 2'],w3:['falsch3','wrong3','falsche antwort 3'],
+  w:['falsch','wrong','falsche antworten','distraktoren'],c:['rubrik','kategorie','category','thema','topic'],g:['grad','gurt','guertel','grade','belt','kup'],d:['schwierigkeit','difficulty','level','stufe'],
+  x:['erklaerung','explanation','hinweis','note'],kind:['typ','type','art','kind'],alts:['alternativen','alternatives','akzeptiert','accept'],pack:['paket','pack','set']};
+const SYNMAP={};Object.keys(SYN).forEach(k=>SYN[k].forEach(s=>{SYNMAP[strip(s).replace(/[^a-z0-9 ]/g,'')]=k}));
+const DEFCOLS=['q','a','w1','w2','w3','c','g','d','x','kind','alts'];
+function parseCSV(text,delim){const rows=[];let row=[],cur='',inQ=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(inQ){if(ch==='"'){if(text[i+1]==='"'){cur+='"';i++}else inQ=false}else cur+=ch}
+    else if(ch==='"'&&cur===''){inQ=true}
+    else if(ch===delim){row.push(cur);cur=''}
+    else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(cur);cur='';if(row.some(x=>x.trim()!==''))rows.push(row);row=[]}
+    else cur+=ch}
+  row.push(cur);if(row.some(x=>x.trim()!==''))rows.push(row);return rows}
+function parseGrade(v){
+  const s=strip(String(v==null?'':v)).trim();if(!s)return null;
+  const nums=s.match(/^(\d+)/);
+  if(typeof v==='number'||/^\d+$/.test(s)){const n=+s;for(let i=0;i<=8;i++)if(GR[i].n.indexOf(n+'. Kup')===0)return i;return undefined}
+  const m=s.match(/(\d+)\D*(kup|poom|dan)/);
+  if(m){const n=+m[1],k=m[2];for(let i=0;i<GR.length;i++){const g=GR[i].n;if(k==='kup'&&g===n+'. Kup')return i;if(k==='poom'&&g===n+'. Poom/Dan')return i;if(k==='dan'&&(g===n+'. Dan'||g===n+'. Poom/Dan'))return i}}
+  return undefined;
+}
+function parseDiff(v){const s=strip(String(v==null?'':v)).trim();if(!s)return 2;if(/^[123]$/.test(s))return +s;if(/leicht|easy|einfach/.test(s))return 1;if(/schwer|hard|difficult/.test(s))return 3;if(/mittel|medium/.test(s))return 2;return 2}
+function parseKind(v,hasW){const s=strip(String(v==null?'':v)).trim();if(/auswahl|mc|choice|multiple/.test(s))return 'mc';if(/frei|text|typed|tipp/.test(s))return 'text';if(/karte|card|flash/.test(s))return 'card';return hasW?'mc':'card'}
+function splitList(v){if(Array.isArray(v))return v.map(x=>String(x).trim()).filter(Boolean);return String(v==null?'':v).split(/[|;]/).map(x=>x.trim()).filter(Boolean)}
+function parseImport(text,pack){
+  text=String(text||'').replace(/^﻿/,'').trim();
+  const res={ok:[],errors:[],dups:0,fatal:''};
+  if(!text){res.fatal=t('i.e.nodata');return res}
+  let rows=[];
+  if(text[0]==='['||text[0]==='{'){
+    let j;try{j=JSON.parse(text)}catch(e){res.fatal=t('i.e.json');return res}
+    const arr=Array.isArray(j)?j:Array.isArray(j.questions)?j.questions:null;if(!arr){res.fatal=t('i.e.nodata');return res}
+    rows=arr.map(o=>{const r={};Object.keys(o||{}).forEach(k=>{const m=SYNMAP[strip(k).replace(/[^a-z0-9 ]/g,'')];if(m)r[m]=o[k]});return r});
+  }else{
+    const first=text.split(/\r?\n/)[0];const cnt=d=>first.split(d).length-1;
+    const delim=cnt(';')>=cnt(',')&&cnt(';')>=cnt('\t')?';':cnt('\t')>cnt(',')?'\t':',';
+    const raw=parseCSV(text,delim);if(!raw.length){res.fatal=t('i.e.nodata');return res}
+    const head=raw[0].map(h=>SYNMAP[strip(h).replace(/[^a-z0-9 ]/g,'')]||null);
+    let cols,data;
+    if(head.indexOf('q')>=0&&head.indexOf('a')>=0){cols=head;data=raw.slice(1)}
+    else if(head.filter(Boolean).length===0&&raw[0].length>=2){cols=DEFCOLS;data=raw}
+    else{res.fatal=t('i.e.cols');return res}
+    rows=data.map(r=>{const o={};cols.forEach((k,i)=>{if(k&&r[i]!=null&&r[i].trim()!=='')o[k]=r[i].trim()});return o});
+  }
+  const seen=new Set(browseList().map(q=>normTxt(q.q)));
+  rows.forEach((r,i)=>{
+    const rn=i+2,q=String(r.q==null?'':r.q).trim(),a=String(r.a==null?'':r.a).trim();
+    if(!q){res.errors.push(t('i.row',{r:rn,m:t('i.e.q')}));return}
+    if(!a){res.errors.push(t('i.row',{r:rn,m:t('i.e.a')}));return}
+    let w=splitList(r.w);['w1','w2','w3'].forEach(k=>{if(r[k]!=null&&String(r[k]).trim())w.push(String(r[k]).trim())});
+    w=w.filter(x=>normTxt(x)!==normTxt(a));
+    const kind=parseKind(r.kind,w.length>0);
+    if(kind==='mc'&&!w.length){res.errors.push(t('i.row',{r:rn,m:t('i.e.w')}));return}
+    let g=parseGrade(r.g);if(g===undefined){res.errors.push(t('i.row',{r:rn,m:t('i.e.g',{v:r.g})}));return}if(g===null)g=P().target;
+    const nq=normTxt(q);if(seen.has(nq)){res.dups++;return}seen.add(nq);
+    res.ok.push({kind,q,a,w:kind==='mc'?w.slice(0,5):[],alts:kind==='text'?splitList(r.alts):[],x:String(r.x==null?'':r.x).trim(),c:String(r.c==null?'':r.c).trim()||t('f.defCat'),g,d:parseDiff(r.d),pack:String(r.pack==null?'':r.pack).trim()||pack});
+  });
+  return res;
+}
+const TPL_CSV='frage;antwort;falsch1;falsch2;falsch3;rubrik;grad;schwierigkeit;erklaerung;typ;alternativen\nWas bedeutet Kihap?;Kampfschrei;Verbeugung;Gürtel;Trainingshalle;Begriffe;9. Kup;1;Der Kampfschrei bündelt die Energie.;auswahl;\nWie heißt der Frontkick auf Koreanisch?;Ap Chagi;;;;Begriffe;9. Kup;1;;freitext;Ap Tchagi|Ap Chaki\nWelche Form gehört zum 7. Kup?;Taegeuk Il Jang;;;;Poomsae;7. Kup;2;;karteikarte;\n';
+const TPL_JSON=JSON.stringify([{frage:'Was bedeutet Kihap?',antwort:'Kampfschrei',falsch:['Verbeugung','Gürtel','Trainingshalle'],rubrik:'Begriffe',grad:'9. Kup',schwierigkeit:1,erklaerung:'Der Kampfschrei bündelt die Energie.',typ:'auswahl'},{frage:'Wie heißt der Frontkick auf Koreanisch?',antwort:'Ap Chagi',rubrik:'Begriffe',grad:'9. Kup',schwierigkeit:1,typ:'freitext',alternativen:['Ap Tchagi']},{frage:'Welche Form gehört zum 7. Kup?',antwort:'Taegeuk Il Jang',rubrik:'Poomsae',grad:'7. Kup',typ:'karteikarte'}],null,2);
+function renderImport(){
+  const I=ui.imp,res=I.res;
+  app.innerHTML=`<div class="stack">${topbar()}<div class="row"><button type="button" class="btn ghost sm" data-a="cview" data-v="list">${esc(t('back'))}</button><h2>${esc(t('i.title'))}</h2></div>
+  <div class="card stack"><p class="muted">${esc(t('i.intro'))}</p>
+   <div class="row"><label class="btn ghost" for="i-file" style="cursor:pointer">${esc(t('i.file'))}</label><input type="file" id="i-file" data-c="file" accept=".csv,.json,.txt,text/csv,application/json,text/plain" style="display:none">
+    <button type="button" class="btn ghost sm" data-a="tpl" data-v="csv">${esc(t('i.tplCsv'))}</button><button type="button" class="btn ghost sm" data-a="tpl" data-v="json">${esc(t('i.tplJson'))}</button></div>
+   ${I.tpl?`<div class="stack"><span class="sub">${esc(t('i.tplHint'))}</span><textarea id="i-tpl" class="copybox" readonly>${esc(I.tpl)}</textarea><div class="row"><button type="button" class="btn ghost sm" data-a="tpldl">${esc(t('e.dl'))}</button><button type="button" class="btn ghost sm" data-a="tplcopy">${esc(t('e.copy'))}</button></div></div>`:''}
+   <label class="fld" for="i-text"><span class="label">${esc(t('i.paste'))}</span><textarea id="i-text" class="copybox" data-i="text">${esc(I.text)}</textarea></label>
+   <label class="fld" for="i-pack"><span class="label">${esc(t('i.pack'))}</span><input type="text" id="i-pack" data-i="pack" value="${esc(I.pack||I.name||t('f.defPack'))}" autocomplete="off"></label>
+   <div><button type="button" class="btn" data-a="icheck">${esc(t('i.check'))}</button></div></div>
+  ${res?`<div class="card stack">${res.fatal?`<div class="errs">${esc(res.fatal)}</div>`:`<div class="row"><span class="pill">${esc(t('i.valid',{n:res.ok.length}))}</span><span class="pill">${esc(t('i.errors',{n:res.errors.length}))}</span><span class="pill">${esc(t('i.dups',{n:res.dups}))}</span></div>
+    ${res.errors.length?`<div class="errs">${res.errors.slice(0,10).map(e=>`<span>${esc(e)}</span>`).join('')}${res.errors.length>10?'<span>…</span>':''}</div>`:''}
+    ${res.ok.length?`<div class="stack">${res.ok.slice(0,3).map(q=>`<div class="qitem"><div class="t">${esc(q.q)}</div><div class="a">${esc(q.a)} · ${esc(t('f.k.'+q.kind))}</div></div>`).join('')}</div><div><button type="button" class="btn" data-a="idoit">${esc(t('i.do'))} (${res.ok.length})</button></div>`:`<p class="muted">${esc(t('i.empty'))}</p>`}`}</div>`:''}
+  </div>`;
+}
+function csvField(v,d){v=String(v==null?'':v);return(v.indexOf(d)>=0||v.indexOf('"')>=0||/[\r\n]/.test(v))?'"'+v.replace(/"/g,'""')+'"':v}
+function exportText(fmt){
+  const L=DB.custom;
+  if(fmt==='json')return JSON.stringify(L.map(c=>({frage:c.q,antwort:c.a,falsch:c.w,rubrik:c.c,grad:GR[c.g].n,schwierigkeit:c.d,erklaerung:c.x,typ:c.kind==='mc'?'auswahl':c.kind==='text'?'freitext':'karteikarte',alternativen:c.alts||[],paket:c.pack})),null,2);
+  const h=['frage','antwort','falsch1','falsch2','falsch3','rubrik','grad','schwierigkeit','erklaerung','typ','alternativen','paket'];
+  return h.join(';')+'\n'+L.map(c=>[c.q,c.a,c.w[0]||'',c.w[1]||'',c.w[2]||'',c.c,GR[c.g].n,c.d,c.x,c.kind==='mc'?'auswahl':c.kind==='text'?'freitext':'karteikarte',(c.alts||[]).join('|'),c.pack].map(v=>csvField(v,';')).join(';')).join('\n')+'\n';
+}
+function renderExport(){
+  const fmt=ui.exp.fmt,txt=DB.custom.length?exportText(fmt):'';
+  app.innerHTML=`<div class="stack">${topbar()}<div class="row"><button type="button" class="btn ghost sm" data-a="cview" data-v="list">${esc(t('back'))}</button><h2>${esc(t('e.title'))}</h2></div>
+  <div class="card stack">${DB.custom.length?`${seg([['json','JSON'],['csv','CSV']],fmt,'efmt','fmt')}
+   <textarea id="e-text" class="copybox" readonly>${esc(txt)}</textarea>
+   <div class="row"><button type="button" class="btn" data-a="edl">${esc(t('e.dl'))}</button><button type="button" class="btn ghost" data-a="ecopy">${esc(t('e.copy'))}</button></div><p class="sub">${esc(t('e.hint'))}</p>`:`<p class="muted">${esc(t('e.none'))}</p>`}</div></div>`;
+}
+
+/* ---------- Profil ---------- */
+function renderMe(){
+  const p=P(),L=levelOf(p.xp);
+  let ans=0,right=0;Object.keys(p.progress).forEach(id=>{const r=p.progress[id];ans+=r.right+r.wrong;right+=r.right});
+  const acc=ans?Math.round(right/ans*100):0;
+  const cs={};ALL.forEach(q=>{const r=p.progress[q.id];if(!r)return;const o=cs[q.c]||(cs[q.c]={r:0,w:0});o.r+=r.right;o.w+=r.wrong});
+  const days=[];for(let i=13;i>=0;i--){const d=addDays(today(),-i),a=d.split('-').map(Number);days.push({d,n:p.daily[d]||0,wd:new Date(a[0],a[1]-1,a[2]).toLocaleDateString(locale(),{weekday:'narrow'})})}
+  const mx=Math.max(p.goal,...days.map(x=>x.n),1);
+  app.innerHTML=`<div class="stack">${topbar()}
+  <div class="card stack"><div class="row sp"><div class="who">${avatar(p,52)}<div><b>${esc(p.name)}</b><span class="muted">${esc(rank(L))} · ${p.xp} XP</span></div></div></div>
+   <label class="fld" for="me-name"><span class="label">${esc(t('me.name'))}</span><input type="text" id="me-name" data-c="name" value="${esc(p.name)}" maxlength="30" autocomplete="off"></label>
+   <div class="fld"><span class="label">${esc(t('ob.avatar'))}</span><div class="avs">${COLORS.map((c,i)=>`<button type="button" data-a="mecolor" data-v="${i}" aria-pressed="${p.color===i}" aria-label="${i+1}">${avatar({name:p.name,color:i},34)}</button>`).join('')}</div></div></div>
+  <div class="card stack"><h3>${esc(t('me.profiles'))}</h3>
+   ${DB.profiles.map(x=>`<button type="button" class="belt" data-a="switch" data-id="${esc(x.id)}" aria-pressed="${x.id===p.id}">${avatar(x,28)}<span class="grow">${esc(x.name)}</span><span class="sub">${x.xp} XP</span></button>`).join('')}
+   <div class="row"><button type="button" class="btn ghost sm" data-a="newprof">${esc(t('me.new'))}</button><button type="button" class="btn ghost sm" data-a="delprof">${esc(t('me.del'))}</button></div></div>
+  <div class="card stack"><h3>${esc(t('me.settings'))}</h3>
+   <label class="fld" for="me-target"><span class="label">${esc(t('me.target'))}</span>${gradeSelect(p.target,'id="me-target" data-c="target"')}</label>
+   <label class="fld" for="me-exam"><span class="label">${esc(t('me.exam'))}</span><input type="date" id="me-exam" data-c="exam" value="${esc(p.examDate)}"></label>
+   <div class="fld"><span class="label">${esc(t('me.goal'))}</span>${seg([[5,'5'],[10,'10'],[20,'20'],[30,'30']],p.goal,'megoal','goal')}</div>
+   <div class="fld"><span class="label">${esc(t('me.lang'))}</span>${seg([['de','Deutsch'],['en','English']],lang,'lang2','lang')}</div>
+   <div class="fld"><span class="label">${esc(t('me.theme'))}</span>${seg([['auto',t('th.auto')],['light',t('th.light')],['dark',t('th.dark')]],DB.theme,'theme','theme')}</div></div>
+  <div class="card stack"><h3>${esc(t('me.stats'))}</h3>
+   <div class="tiles"><div class="tile"><span>${esc(t('st.answered'))}</span><b class="n">${ans}</b></div><div class="tile"><span>${esc(t('st.acc'))}</span><b class="n">${acc} %</b></div>
+    <div class="tile"><span>${esc(t('st.rounds'))}</span><b class="n">${p.stats.rounds}</b></div><div class="tile"><span>${esc(t('st.best'))}</span><b class="n">${p.streak.best}</b></div>
+    <div class="tile"><span>${esc(t('st.mastered'))}</span><b class="n">${mastered(p)} / ${ALL.length}</b></div><div class="tile"><span>${esc(t('st.xp'))}</span><b class="n">${p.xp}</b></div></div>
+   <div class="label">${esc(t('me.last14'))}</div><div class="act">${days.map(x=>`<div class="d" title="${esc(x.d)}: ${x.n}"><i class="${x.n>=p.goal?'g':''}" style="height:${x.n?Math.max(6,Math.round(x.n/mx*56)):3}px"></i><span>${esc(x.wd)}</span></div>`).join('')}</div>
+   ${Object.keys(cs).length?`<div class="label">${esc(t('me.topics'))}</div>${Object.keys(cs).map(c=>{const v=cs[c],pc=Math.round(v.r/(v.r+v.w)*100);return `<div class="cat"><span>${esc(catLabel(c))}</span><div class="prog"><div style="width:${pc}%;background:${pc>=60?'var(--good)':'var(--bad)'}"></div></div><span>${pc} %</span></div>`}).join('')}`:''}</div>
+  <div class="card stack"><h3>${esc(t('me.badges'))}</h3><div class="badges">${BADGES.map(b=>badgeHTML(b,!!p.badges[b.id])).join('')}</div></div>
+  <div class="card stack"><h3>${esc(t('me.history'))}</h3>${p.rounds.length?p.rounds.slice(0,8).map(r=>`<div class="row sp sub"><span>${esc(new Date(r.ts).toLocaleDateString(locale()))} · ${esc(t('m.'+r.mode))}</span><span>${r.pct} % · +${r.xp} XP</span></div>`).join(''):`<p class="muted">${esc(t('me.noHist'))}</p>`}</div>
+  <div class="card stack"><h3>${esc(t('me.backup'))}</h3><p class="muted">${esc(t('bk.intro'))}</p>
+   <div class="row"><button type="button" class="btn ghost sm" data-a="bkexport">${esc(t('bk.export'))}</button><button type="button" class="btn ghost sm" data-a="bkopen">${esc(t('bk.import'))}</button><button type="button" class="btn ghost sm" data-a="reset">${esc(t('me.reset'))}</button></div>
+   ${ui.bkShow?`<textarea id="bk-text" class="copybox" data-o="bk2" placeholder="${esc(t('bk.paste'))}">${esc(ui.bkText)}</textarea><div class="row"><button type="button" class="btn ghost sm" data-a="bkdl">${esc(t('e.dl'))}</button><button type="button" class="btn ghost sm" data-a="bkcopy">${esc(t('e.copy'))}</button><label class="btn ghost sm" for="bk-file" style="cursor:pointer">${esc(t('i.file'))}</label><input type="file" id="bk-file" data-c="bkfile" accept=".json,.txt,application/json,text/plain" style="display:none"><button type="button" class="btn danger sm" data-a="bkrestore">${esc(t('bk.import'))}</button></div><p class="sub">${esc(t('bk.warn'))}</p>`:''}</div>
+  <p class="sub">${esc(t('me.disc'))}</p></div>`;
+}
+function restore(text){
+  let j;try{j=JSON.parse(text)}catch(e){toast(t('bk.err'));return false}
+  if(!j||!Array.isArray(j.profiles)){toast(t('bk.err'));return false}
+  DB=j;fixDB();lang=DB.lang;wr();rebuild();ui.screen='main';ui.tab='me';ui.bkShow=false;ui.bkText='';toast(t('bk.ok'));render();return true;
+}
+function readFile(file,cb){const r=new FileReader();r.onload=()=>cb(String(r.result||''));r.readAsText(file)}
+
+/* ---------- Ereignisse ---------- */
+const A={
+ lang(b){lang=b.dataset.v;DB.lang=lang;wr();render()},
+ tab(b){ui.tab=b.dataset.v;if(ui.tab!=='cat'){ui.cat.view='list'}render();window.scrollTo(0,0)},
+ go(b){const m=b.dataset.m;if(m==='review'||m==='quick'||m==='weak'&&weakList().length){startQuiz(m);return}ui.learn=m;ui.tab='learn';render();window.scrollTo(0,0)},
+ open(b){ui.learn=ui.learn===b.dataset.m?'':b.dataset.m;render()},
+ cfgset(b){const k=b.dataset.k;P().cfg[k]=+b.dataset.v;wr();render()},
+ start(b){startQuiz(b.dataset.m)},
+ pick(b){if(Q.answered)return;Q.sel=+b.dataset.v;app.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-checked',String(x===b)));const g=$('#go');if(g)g.disabled=false},
+ submit(){submit(false)},skip(){submit(true)},
+ reveal(){const q=Q.qs[Q.i];$('#reveal').innerHTML=`<div class="fb"><span class="label">${esc(t('cat.answer'))}</span><span class="ans">${esc(q.a)}</span></div>`;$('#acts').innerHTML=`<button type="button" class="btn ghost" data-a="cardno">${esc(t('q.knewNot'))}</button><button type="button" class="btn" data-a="cardyes">${esc(t('q.knew'))}</button>`},
+ cardyes(){submit(false,true)},cardno(){submit(false,false)},
+ override(){override()},next(){nextQ()},quit(){quitQuiz()},
+ again(){const m=Q.mode;ui.screen='main';startQuiz(m)},finish(){ui.screen='main';ui.tab='home';Q=null;render();window.scrollTo(0,0)},
+ cview(b){ui.cat.view=b.dataset.v;if(b.dataset.v!=='form'){ui.form=null;ui.formErr=[]}if(b.dataset.v==='import'){ui.imp={text:'',name:'',res:null,pack:'',tpl:''}}render();window.scrollTo(0,0)},
+ more(){ui.cat.limit+=40;$('#catres').innerHTML=catResults()},
+ qnew(){ui.form=blankForm();ui.formErr=[];ui.cat.view='form';render();window.scrollTo(0,0)},
+ qedit(b){const c=DB.custom.find(x=>x.id===b.dataset.id);if(!c)return;ui.form={id:c.id,kind:c.kind,q:c.q,a:c.a,w1:c.w[0]||'',w2:c.w[1]||'',w3:c.w[2]||'',alts:(c.alts||[]).join(' | '),x:c.x||'',c:c.c,g:c.g,d:c.d,pack:c.pack};ui.formErr=[];ui.cat.view='form';render();window.scrollTo(0,0)},
+ qdel(b){ask(t('f.delQ'),t('delete'),()=>{DB.custom=DB.custom.filter(x=>x.id!==b.dataset.id);wr();rebuild();toast(t('toast.del'));render()})},
+ fkind(b){ui.form.kind=b.dataset.v;render()},
+ fsave(b){saveForm(!!b.dataset.more)},
+ packtoggle(b){const p=b.dataset.p;if(DB.packsOff[p])delete DB.packsOff[p];else DB.packsOff[p]=true;wr();rebuild();render()},
+ packdel(b){const p=b.dataset.p,n=DB.custom.filter(c=>c.pack===p).length;ask(t('cat.delPackQ',{p:p,n:n}),t('delete'),()=>{DB.custom=DB.custom.filter(c=>c.pack!==p);delete DB.packsOff[p];wr();rebuild();toast(t('toast.del'));render()})},
+ tpl(b){ui.imp.tpl=b.dataset.v==='csv'?TPL_CSV:TPL_JSON;ui.imp.tplName=b.dataset.v==='csv'?'fragen-vorlage.csv':'fragen-vorlage.json';render()},
+ tpldl(){download(ui.imp.tplName,(ui.imp.tplName.endsWith('csv')?'﻿':'')+ui.imp.tpl,ui.imp.tplName.endsWith('csv')?'text/csv':'application/json')},
+ tplcopy(){copyText(ui.imp.tpl,$('#i-tpl'))},
+ icheck(){const I=ui.imp;I.res=parseImport(I.text,(I.pack||I.name||t('f.defPack')).trim());render()},
+ idoit(){const I=ui.imp,res=I.res;if(!res||!res.ok.length)return;res.ok.forEach(q=>{DB.custom.push(Object.assign({id:'u'+DB.nextId++},q))});const p=P();p.stats.own+=res.ok.length;const nb=checkBadges(p);wr();rebuild();toast(t('i.done',{n:res.ok.length}));nb.forEach(b=>setTimeout(()=>toast(t('toast.badge',{n:bname(b)})),1800));ui.imp={text:'',name:'',res:null,pack:'',tpl:''};ui.cat.view='list';render()},
+ efmt(b){ui.exp.fmt=b.dataset.v;render()},
+ edl(){const f=ui.exp.fmt;download('fragen.'+f,(f==='csv'?'﻿':'')+exportText(f),f==='csv'?'text/csv':'application/json')},
+ ecopy(){copyText(exportText(ui.exp.fmt),$('#e-text'))},
+ obcolor(b){ui.ob.color=+b.dataset.v;render()},obgoal(b){ui.ob.goal=+b.dataset.v;render()},
+ obcancel(){ui.ob=null;ui.screen='main';render()},
+ obdone(){const o=ui.ob;const p={id:'p'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),name:(o.name||'').trim()||t('ob.nameDefault'),color:o.color,target:o.target,goal:o.goal};fixP(p);DB.profiles.push(p);DB.active=p.id;DB.lang=lang;wr();ui.ob=null;ui.screen='main';ui.tab='home';toast(t('toast.profile'));render();window.scrollTo(0,0)},
+ mecolor(b){P().color=+b.dataset.v;wr();render()},
+ megoal(b){P().goal=+b.dataset.v;wr();render()},
+ lang2(b){lang=b.dataset.v;DB.lang=lang;wr();render()},
+ theme(b){DB.theme=b.dataset.v;wr();render()},
+ switch(b){DB.active=b.dataset.id;wr();render()},
+ newprof(){ui.ob={name:'',color:DB.profiles.length%COLORS.length,target:1,goal:10};ui.screen='onboard';render();window.scrollTo(0,0)},
+ delprof(){const p=P();ask(t('me.delQ',{n:p.name}),t('delete'),()=>{DB.profiles=DB.profiles.filter(x=>x.id!==p.id);fixDB();wr();toast(t('toast.del'));ui.tab='home';render()})},
+ reset(){const p=P();ask(t('me.resetQ',{n:p.name}),t('me.reset'),()=>{p.progress={};p.daily={};p.streak={count:0,best:0,last:'',freezeWeek:''};p.rounds=[];p.badges={};p.xp=0;p.stats={rounds:0,perfect:0,examPass:0,goalDays:0,own:0};wr();toast(t('toast.reset'));render()})},
+ bkexport(){ui.bkShow=true;ui.bkText=JSON.stringify(DB,null,1);render()},
+ bkopen(){ui.bkShow=true;ui.bkText='';render()},
+ bkdl(){download('tkd-trainer-sicherung-'+today()+'.json',ui.bkText||JSON.stringify(DB,null,1),'application/json')},
+ bkcopy(){copyText(ui.bkText,$('#bk-text'))},
+ bkrestore(){const el=$('#bk-text')||$('#bk-in');const txt=el?el.value:'';if(DB.profiles.length&&ui.screen!=='onboard'){ask(t('bk.confirm'),t('bk.import'),()=>restore(txt))}else restore(txt)}
+};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.disabled)return;const f=A[b.dataset.a];if(f){e.preventDefault();f(b)}});
+document.addEventListener('input',e=>{
+  const el=e.target,d=el.dataset;
+  if(d.f&&ui.form){ui.form[d.f]=el.value;return}
+  if(d.o==='name'&&ui.ob){ui.ob.name=el.value;return}
+  if(d.i&&ui.imp){ui.imp[d.i]=el.value;return}
+  if(d.o==='bk2'){ui.bkText=el.value;return}
+  if(d.s){const f=ui.cat;if(d.s==='q'){f.q=el.value;f.limit=40;$('#catres').innerHTML=catResults()}}
+});
+document.addEventListener('change',e=>{
+  const el=e.target,d=el.dataset;
+  if(d.o==='target'&&ui.ob){ui.ob.target=+el.value;return}
+  if(d.s==='cat'){ui.cat.cat=el.value;ui.cat.limit=40;$('#catres').innerHTML=catResults();return}
+  if(d.s==='own'){ui.cat.own=el.checked;ui.cat.limit=40;$('#catres').innerHTML=catResults();return}
+  if(d.f&&ui.form){ui.form[d.f]=el.value;return}
+  if(d.c==='cfg'){const p=P();p.cfg[d.k]=d.k==='cat'?el.value:+el.value;wr();return}
+  if(d.c==='name'){const p=P();p.name=el.value.trim()||p.name;wr();return}
+  if(d.c==='target'){const p=P();p.target=+el.value;p.cfg.grade=p.target;wr();return}
+  if(d.c==='exam'){P().examDate=el.value;wr();return}
+  if(d.c==='file'&&el.files&&el.files[0]){const f=el.files[0];readFile(f,txt=>{ui.imp.text=txt;ui.imp.name=f.name.replace(/\.[^.]+$/,'');ui.imp.pack=ui.imp.name;ui.imp.res=parseImport(txt,ui.imp.name);render()});return}
+  if(d.c==='bkfile'&&el.files&&el.files[0]){readFile(el.files[0],txt=>{ui.bkText=txt;ui.bkShow=true;render()});return}
+});
+document.addEventListener('keydown',e=>{
+  if(ui.screen!=='quiz'||!Q)return;const q=Q.qs[Q.i];if(!q||e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT')return;
+  if(!Q.answered&&q.mode==='mc'&&/^[1-5]$/.test(e.key)){const b=app.querySelectorAll('.opt')[+e.key-1];if(b)b.click()}
+  else if(e.key==='Enter'&&!Q.answered&&q.mode==='mc'&&Q.sel>=0){e.preventDefault();submit(false)}
+});
+
+window.__app={DB:()=>DB,ALL:()=>ALL,ui,Q:()=>Q,I18N,t,render,P,dueList,weakList,parseImport,exportText,select,levelOf,BADGES,setLang:l=>{lang=l}};
+render();
+if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){window.addEventListener('load',()=>{try{navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}})}
+})();
+
+</script>
+</body>
+</html>
